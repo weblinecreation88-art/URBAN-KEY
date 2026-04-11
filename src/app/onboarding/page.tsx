@@ -27,8 +27,7 @@ export default function OnboardingPage() {
           <div
             className="w-full h-full bg-cover bg-center opacity-60"
             style={{
-              backgroundImage:
-                "url('https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=800&q=80')",
+              backgroundImage: "url('/images/hero-thomas-pellow.png')",
             }}
           />
           {/* Gradient overlay */}

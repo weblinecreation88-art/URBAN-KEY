@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -45,9 +46,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${jakarta.variable} ${inter.variable} bg-background text-on-background font-body antialiased`}>
-        <div className="max-w-md mx-auto min-h-dvh relative overflow-x-hidden">
-          {children}
-        </div>
+        <AuthProvider>
+          <div className="max-w-md mx-auto min-h-dvh relative overflow-x-hidden">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

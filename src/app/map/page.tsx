@@ -1,210 +1,262 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import Icon from "@/components/Icon";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
+
+const MEKNES_CENTER = { lat: 33.8935, lng: -5.5473 };
+
+const questSteps = [
+  { id: "bab-mansour", lat: 33.8953, lng: -5.5524, title: "Bab Mansour", status: "active" as const },
+  { id: "place-hedim", lat: 33.8945, lng: -5.5510, title: "Place El-Hedim", status: "locked" as const },
+  { id: "mausolee", lat: 33.8920, lng: -5.5490, title: "Mausolée Moulay Ismail", status: "locked" as const },
+  { id: "souk", lat: 33.8930, lng: -5.5440, title: "Souk Nejjarine", status: "locked" as const },
+  { id: "medersa", lat: 33.8960, lng: -5.5465, title: "Bou Inania Médersa", status: "locked" as const },
+  { id: "agdal", lat: 33.8900, lng: -5.5415, title: "Bassin de l'Agdal", status: "locked" as const },
+];
 
 export default function MapPage() {
   const router = useRouter();
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const userMarkerRef = useRef<google.maps.Marker | null>(null);
   const [layersOpen, setLayersOpen] = useState(false);
-  const [poiToggle, setPoiToggle] = useState(true);
-  const [pathToggle, setPathToggle] = useState(true);
+  const [showPOI, setShowPOI] = useState(true);
+  const [showPath, setShowPath] = useState(true);
+  const [mapError, setMapError] = useState("");
+  const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [activeStep, setActiveStep] = useState(questSteps[0]);
+
+  // Init Google Maps
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      setMapError("Clé API Google Maps manquante.");
+      return;
+    }
+
+    setOptions({ key: apiKey, v: "weekly" });
+
+    importLibrary("maps").then(() => {
+      if (!mapRef.current) return;
+
+      const map = new google.maps.Map(mapRef.current, {
+        center: MEKNES_CENTER,
+        zoom: 16,
+        disableDefaultUI: true,
+        styles: [
+          { elementType: "geometry", stylers: [{ color: "#0e1c2e" }] },
+          { elementType: "labels.text.fill", stylers: [{ color: "#a2cfce" }] },
+          { elementType: "labels.text.stroke", stylers: [{ color: "#081422" }] },
+          { featureType: "road", elementType: "geometry", stylers: [{ color: "#1a2d42" }] },
+          { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#0e1c2e" }] },
+          { featureType: "water", elementType: "geometry", stylers: [{ color: "#081422" }] },
+          { featureType: "poi", elementType: "geometry", stylers: [{ color: "#0e1c2e" }] },
+          { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#0e2215" }] },
+          { featureType: "transit", elementType: "geometry", stylers: [{ color: "#1a2d42" }] },
+          { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#1a2d42" }] },
+          { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#0e1c2e" }] },
+        ],
+      });
+      mapInstanceRef.current = map;
+
+      // Quest step markers
+      questSteps.forEach((step) => {
+        const isActive = step.status === "active";
+        const marker = new google.maps.Marker({
+          position: { lat: step.lat, lng: step.lng },
+          map,
+          title: step.title,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: isActive ? 14 : 8,
+            fillColor: isActive ? "#f0be72" : "#2a3545",
+            fillOpacity: 1,
+            strokeColor: isActive ? "#f0be72" : "#a2cfce",
+            strokeWeight: isActive ? 2 : 1,
+          },
+        });
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: `<div style="background:#0e1c2e;color:#a2cfce;padding:8px 12px;border-radius:8px;font-family:sans-serif;font-size:12px;font-weight:bold">${step.title}</div>`,
+        });
+
+        marker.addListener("click", () => {
+          setActiveStep(step);
+          infoWindow.open(map, marker);
+        });
+      });
+
+      // Draw path
+      if (showPath) {
+        new google.maps.Polyline({
+          path: questSteps.map((s) => ({ lat: s.lat, lng: s.lng })),
+          geodesic: true,
+          strokeColor: "#a2cfce",
+          strokeOpacity: 0.4,
+          strokeWeight: 2,
+          icons: [{ icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 }, offset: "0", repeat: "12px" }],
+          map,
+        });
+      }
+    }).catch((e: unknown) => { console.error(e); setMapError("Impossible de charger Google Maps."); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Geolocation watch
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserPos(loc);
+        if (mapInstanceRef.current) {
+          if (!userMarkerRef.current) {
+            userMarkerRef.current = new google.maps.Marker({
+              position: loc,
+              map: mapInstanceRef.current,
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: "#a2cfce",
+                fillOpacity: 1,
+                strokeColor: "#081422",
+                strokeWeight: 3,
+              },
+              title: "Vous êtes ici",
+              zIndex: 999,
+            });
+          } else {
+            userMarkerRef.current.setPosition(loc);
+          }
+        }
+      },
+      (err) => console.warn("Géolocalisation:", err.message),
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  function recenter() {
+    if (!mapInstanceRef.current) return;
+    const target = userPos ?? MEKNES_CENTER;
+    mapInstanceRef.current.panTo(target);
+    mapInstanceRef.current.setZoom(17);
+  }
 
   return (
-    <div className="h-dvh w-full flex flex-col bg-background overflow-hidden relative">
+    <div className="h-dvh w-full bg-background relative overflow-hidden">
+      {/* Map container */}
+      <div ref={mapRef} className="absolute inset-0 w-full h-full" />
+
+      {/* Fallback si pas de clé */}
+      {mapError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background/90">
+          <Icon name="map_off" className="text-on-surface-variant" size={48} />
+          <p className="text-on-surface-variant text-sm text-center px-8">{mapError}</p>
+          <p className="text-on-surface-variant/50 text-[10px] text-center px-8">
+            Ajoute ta clé Google Maps dans .env.local → NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+          </p>
+        </div>
+      )}
+
       {/* Header */}
-      <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 h-16 flex items-center justify-between px-6 bg-background/80 backdrop-blur-xl">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="text-primary tap-scale p-2 rounded-full hover:bg-surface-container-high transition-colors">
-            <Icon name="arrow_back" />
-          </button>
-          <h1 className="font-headline font-bold text-primary text-xl">Urban Escape</h1>
+      <header
+        className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 pt-12 pb-4"
+        style={{ background: "linear-gradient(to bottom, rgba(8,20,34,0.9), transparent)" }}
+      >
+        <button
+          onClick={() => router.back()}
+          className="w-10 h-10 rounded-full flex items-center justify-center tap-scale"
+          style={{ background: "rgba(32,43,58,0.85)", backdropFilter: "blur(12px)" }}
+        >
+          <Icon name="arrow_back" className="text-primary" />
+        </button>
+        <div
+          className="px-4 py-2 rounded-full flex items-center gap-2"
+          style={{ background: "rgba(32,43,58,0.85)", backdropFilter: "blur(12px)" }}
+        >
+          <div className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+          <span className="text-on-surface text-xs font-bold uppercase tracking-wider">GPS Actif</span>
+          {userPos && (
+            <span className="text-on-surface-variant text-[10px] ml-1">
+              {userPos.lat.toFixed(3)}, {userPos.lng.toFixed(3)}
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setLayersOpen(true)}
-            className="text-primary tap-scale p-2 rounded-full hover:bg-surface-container-high transition-colors"
-          >
-            <Icon name="layers" />
-          </button>
-          <button className="text-primary tap-scale p-2 rounded-full hover:bg-surface-container-high transition-colors">
-            <Icon name="search" />
-          </button>
-        </div>
+        <button
+          onClick={() => setLayersOpen(!layersOpen)}
+          className="w-10 h-10 rounded-full flex items-center justify-center tap-scale"
+          style={{ background: "rgba(32,43,58,0.85)", backdropFilter: "blur(12px)" }}
+        >
+          <Icon name="layers" className="text-primary" />
+        </button>
       </header>
 
-      {/* Map canvas */}
-      <main className="relative flex-1 w-full overflow-hidden pt-16 pb-20">
+      {/* Layers panel */}
+      {layersOpen && (
         <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              "linear-gradient(to bottom, rgba(8,20,34,0.4), rgba(8,20,34,0.8)), url('https://images.unsplash.com/photo-1548345680-f5475ea5df84?w=800&q=80')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
+          className="absolute top-28 right-4 z-20 w-52 rounded-2xl p-4 space-y-3"
+          style={{ background: "rgba(14,28,46,0.97)", backdropFilter: "blur(20px)", border: "1px solid rgba(162,207,206,0.1)" }}
         >
-          {/* SVG paths */}
-          <svg className="absolute inset-0 w-full h-full opacity-60 pointer-events-none" viewBox="0 0 400 800">
-            <path
-              d="M80,320 L180,340 L240,280 L320,400 L340,560"
-              fill="none"
-              stroke="#f0be72"
-              strokeWidth="3"
-              strokeDasharray="8 8"
-              className="drop-shadow-[0_0_8px_rgba(240,190,114,0.8)]"
-            />
-            <path d="M60,160 L120,200 L180,340" fill="none" stroke="#a2cfce" strokeWidth="2" opacity="0.4" />
-          </svg>
-
-          {/* Active enigma marker (pulsing) */}
-          <div className="absolute top-[42%] left-[45%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-            <div className="relative flex items-center justify-center">
-              <div className="absolute w-12 h-12 bg-secondary/30 rounded-full animate-ping" />
-              <div className="relative w-10 h-10 bg-secondary rounded-full flex items-center justify-center shadow-[0_0_15px_#f0be72] border-2 border-on-secondary">
-                <Icon name="extension" filled className="text-on-secondary" size={22} />
-              </div>
-            </div>
-            <div
-              className="mt-2 px-3 py-1 rounded-lg text-secondary font-bold text-xs uppercase tracking-widest"
-              style={{ background: "rgba(32,43,58,0.9)", border: "1px solid rgba(240,190,114,0.2)" }}
-            >
-              Énigme Active
-            </div>
-          </div>
-
-          {/* Historical site marker */}
-          <div className="absolute top-[20%] left-[30%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-[0_0_10px_#a2cfce] border border-on-primary">
-              <Icon name="castle" filled className="text-on-primary" size={18} />
-            </div>
-            <div
-              className="mt-1 px-2 py-0.5 rounded-md text-[10px] text-primary-fixed uppercase font-semibold"
-              style={{ background: "rgba(21,32,47,0.7)", backdropFilter: "blur(8px)" }}
-            >
-              Bab Mansour
-            </div>
-          </div>
-
-          {/* Locked marker */}
-          <div className="absolute top-[60%] left-[80%] -translate-x-1/2 -translate-y-1/2 opacity-60">
-            <div className="w-8 h-8 bg-surface-variant rounded-full flex items-center justify-center border border-outline-variant">
-              <Icon name="lock" className="text-on-surface-variant" size={18} />
-            </div>
-          </div>
-
-          {/* Map controls */}
-          <div className="absolute top-6 right-4 flex flex-col gap-3">
-            <button
-              onClick={() => setLayersOpen(true)}
-              className="w-11 h-11 rounded-xl flex items-center justify-center text-primary tap-scale"
-              style={{ background: "rgba(21,32,47,0.7)", backdropFilter: "blur(16px)", border: "1px solid rgba(162,207,206,0.1)" }}
-            >
-              <Icon name="layers" />
-            </button>
-            <button
-              className="w-11 h-11 rounded-xl flex items-center justify-center text-secondary tap-scale"
-              style={{ background: "rgba(21,32,47,0.7)", backdropFilter: "blur(16px)", border: "1px solid rgba(240,190,114,0.1)" }}
-            >
-              <Icon name="my_location" />
-            </button>
-          </div>
-        </div>
-
-        {/* Quest status bottom sheet */}
-        <div className="absolute bottom-4 left-4 right-4 z-40">
-          <div
-            className="p-5 rounded-2xl overflow-hidden relative"
-            style={{ background: "rgba(21,32,47,0.9)", backdropFilter: "blur(16px)", borderLeft: "4px solid #f0be72" }}
-          >
-            <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-secondary/10 to-transparent pointer-events-none" />
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 bg-secondary-container text-on-secondary-container rounded text-[9px] font-black uppercase tracking-tighter">
-                    Quête en cours
-                  </span>
-                  <span className="text-on-surface-variant text-xs font-medium">Étape 3 / 6</span>
-                </div>
-                <h2 className="font-headline text-base font-bold text-on-surface leading-tight">
-                  Meknès : Le Secret du Sultan
-                </h2>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-secondary font-bold text-sm">350 m</span>
-                <span className="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest">
-                  Prochain indice
-                </span>
-              </div>
-            </div>
-            <div className="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden mb-4">
-              <div className="h-full bg-secondary w-1/2 shadow-[0_0_8px_#f0be72]" />
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => router.push("/enigma/vieux-quartier")}
-                className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 font-headline font-bold text-on-primary text-sm tap-scale cta-gradient"
-              >
-                <Icon name="near_me" size={18} />
-                ITINÉRAIRE
-              </button>
-              <button className="w-11 h-11 rounded-xl flex items-center justify-center text-secondary tap-scale"
-                style={{ background: "rgba(32,43,58,0.7)", backdropFilter: "blur(12px)", border: "1px solid rgba(240,190,114,0.2)" }}
-              >
-                <Icon name="help" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Layers side panel */}
-      <div
-        className={`fixed top-0 right-0 h-full w-72 z-[100] transition-transform duration-300 ease-in-out flex flex-col ${layersOpen ? "translate-x-0" : "translate-x-full"}`}
-        style={{ background: "rgba(21,32,47,0.95)", backdropFilter: "blur(20px)", borderLeft: "1px solid rgba(255,255,255,0.08)" }}
-      >
-        <div className="p-6 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-          <h3 className="font-headline font-bold text-xl text-primary flex items-center gap-2">
-            <Icon name="layers" /> Couches
-          </h3>
-          <button onClick={() => setLayersOpen(false)} className="text-on-surface-variant tap-scale">
-            <Icon name="close" />
-          </button>
-        </div>
-        <div className="flex-1 p-6 space-y-5 overflow-y-auto">
-          <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant/60">
-            Visibilité
-          </p>
+          <p className="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mb-2">Couches</p>
           {[
-            { label: "Points d'intérêt", sub: "Boutiques, cafés, sites", icon: "location_on", color: "text-primary bg-primary-container", state: poiToggle, toggle: setPoiToggle },
-            { label: "Chemins historiques", sub: "Les routes du Sultan", icon: "route", color: "text-secondary bg-secondary-container", state: pathToggle, toggle: setPathToggle },
-          ].map(({ label, sub, icon, color, state, toggle }) => (
+            { label: "Points d'intérêt", value: showPOI, set: setShowPOI, icon: "place" },
+            { label: "Tracé du parcours", value: showPath, set: setShowPath, icon: "route" },
+          ].map(({ label, value, set, icon }) => (
             <div key={label} className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
-                  <Icon name={icon} size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-on-surface">{label}</p>
-                  <p className="text-[10px] text-on-surface-variant">{sub}</p>
-                </div>
+              <div className="flex items-center gap-2">
+                <Icon name={icon} className="text-primary" size={16} />
+                <span className="text-on-surface text-xs font-medium">{label}</span>
               </div>
-              <label className="toggle-switch">
-                <input type="checkbox" checked={state} onChange={() => toggle(!state)} />
+              <label className="toggle-switch scale-75">
+                <input type="checkbox" checked={value} onChange={() => set(!value)} />
                 <span className="slider" />
               </label>
             </div>
           ))}
         </div>
-        <div className="p-5">
-          <button
-            onClick={() => setLayersOpen(false)}
-            className="w-full py-3 rounded-xl font-headline font-bold text-sm tracking-wide tap-scale cta-gradient text-on-primary-fixed"
-          >
-            APPLIQUER
-          </button>
+      )}
+
+      {/* Recenter button */}
+      <button
+        onClick={recenter}
+        className="absolute right-4 bottom-56 z-10 w-12 h-12 rounded-full flex items-center justify-center tap-scale shadow-lg"
+        style={{ background: "rgba(32,43,58,0.9)", backdropFilter: "blur(12px)", border: "1px solid rgba(162,207,206,0.15)" }}
+      >
+        <Icon name="my_location" className="text-primary" size={22} />
+      </button>
+
+      {/* Active step bottom sheet */}
+      <div
+        className="absolute bottom-0 left-0 right-0 z-10 px-5 pb-28 pt-5 rounded-t-3xl"
+        style={{ background: "rgba(8,20,34,0.97)", backdropFilter: "blur(20px)", borderTop: "1px solid rgba(162,207,206,0.1)" }}
+      >
+        <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-4" />
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-secondary mb-1">Étape active</p>
+            <h3 className="font-headline font-bold text-on-surface text-lg leading-tight">{activeStep.title}</h3>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary/10 text-secondary">
+            {activeStep.status === "active" ? "En cours" : "Verrouillé"}
+          </span>
         </div>
+        <div className="h-1.5 w-full rounded-full bg-surface-container-highest overflow-hidden mb-2">
+          <div className="h-full bg-secondary rounded-full" style={{ width: "16%" }} />
+        </div>
+        <p className="text-on-surface-variant text-xs mb-4">1 / {questSteps.length} étapes</p>
+        <button
+          onClick={() => router.push(`/enigma/${activeStep.id}`)}
+          className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-on-primary-fixed tap-scale flex items-center justify-center gap-2"
+        >
+          <Icon name="extension" size={18} />
+          Ouvrir l&apos;étape
+        </button>
       </div>
 
       <BottomNav />

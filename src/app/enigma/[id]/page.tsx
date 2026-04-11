@@ -8,6 +8,8 @@ export default function EnigmaPage() {
   const router = useRouter();
   const [answer, setAnswer] = useState("");
   const [hintVisible, setHintVisible] = useState(false);
+  const [hintText, setHintText] = useState("");
+  const [hintLoading, setHintLoading] = useState(false);
   const [score, setScore] = useState(850);
   const [success, setSuccess] = useState(false);
 
@@ -15,9 +17,27 @@ export default function EnigmaPage() {
     if (answer.trim().length > 0) setSuccess(true);
   }
 
-  function showHint() {
+  async function showHint() {
     setScore((s) => Math.max(0, s - 50));
     setHintVisible(true);
+    setHintLoading(true);
+    try {
+      const res = await fetch("/api/hint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enigmaTitle: "Bab Mansour",
+          enigmaText: "Trouve le symbole caché et entre le code à 4 chiffres situé sous l'arche.",
+          stepNumber: 3,
+        }),
+      });
+      const data = await res.json();
+      setHintText(data.hint ?? "Observe les ombres à midi pile. La direction des rayons révèle le chemin.");
+    } catch {
+      setHintText("Observe les ombres à midi pile. La direction des rayons révèle le chemin.");
+    } finally {
+      setHintLoading(false);
+    }
   }
 
   if (success) {
@@ -74,8 +94,8 @@ export default function EnigmaPage() {
         <section className="relative">
           <div className="aspect-[4/5] rounded-xl overflow-hidden shadow-2xl">
             <img
-              src="https://images.unsplash.com/photo-1605106900803-34cd3b7b9571?w=600&q=80"
-              alt="Énigme — Bab Mansour"
+              src="/images/enigma-mosaique.png"
+              alt="Énigme — Mosaïque Moulay Ismail"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
@@ -156,9 +176,14 @@ export default function EnigmaPage() {
             </h2>
           </div>
           {hintVisible ? (
-            <p className="text-primary italic text-sm leading-relaxed">
-              &ldquo;Observe les ombres à midi pile. La direction des rayons révèle le chemin.&rdquo;
-            </p>
+            hintLoading ? (
+              <div className="flex items-center gap-2 text-primary text-sm">
+                <Icon name="progress_activity" size={16} className="animate-spin" />
+                <span>Gemini génère un indice…</span>
+              </div>
+            ) : (
+              <p className="text-primary italic text-sm leading-relaxed">&ldquo;{hintText}&rdquo;</p>
+            )
           ) : (
             <button
               onClick={showHint}

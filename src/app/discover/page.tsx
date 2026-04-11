@@ -14,7 +14,7 @@ const quests = [
     price: "100 MAD",
     rating: 4.5,
     accessible: true,
-    image: "https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=600&q=80",
+    image: "/images/thomas-pellow.png",
     tag: "Patrimoine",
   },
   {
@@ -25,7 +25,7 @@ const quests = [
     price: "150 MAD",
     rating: 5,
     accessible: false,
-    image: "https://images.unsplash.com/photo-1563177978-4c57e9c0d8a7?w=600&q=80",
+    image: "/images/bab-mansour.jpg",
     tag: "Histoire",
   },
   {
@@ -36,7 +36,7 @@ const quests = [
     price: "120 MAD",
     rating: 4,
     accessible: false,
-    image: "https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?w=600&q=80",
+    image: "/images/bab-mansour-antique.png",
     tag: "Gastronomie",
   },
 ];

@@ -4,15 +4,49 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Icon from "@/components/Icon";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, register } = useAuth();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [cgу, setCgu] = useState(false);
+  const [cgu, setCgu] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit() {
+    setError("");
+    if (!email || !password) { setError("Email et mot de passe requis."); return; }
+    if (mode === "register" && (!firstName || !lastName)) { setError("Prénom et nom requis."); return; }
+    if (mode === "register" && !cgu) { setError("Veuillez accepter les CGU."); return; }
+
+    setLoading(true);
+    try {
+      if (mode === "login") {
+        await login(email, password);
+      } else {
+        await register(email, password, firstName, lastName);
+      }
+      router.push("/discover");
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? "";
+      if (code === "auth/user-not-found" || code === "auth/wrong-password" || code === "auth/invalid-credential") {
+        setError("Email ou mot de passe incorrect.");
+      } else if (code === "auth/email-already-in-use") {
+        setError("Cet email est déjà utilisé.");
+      } else if (code === "auth/weak-password") {
+        setError("Mot de passe trop court (6 caractères min).");
+      } else {
+        setError("Une erreur est survenue. Réessaye.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-dvh bg-background flex flex-col justify-center px-6 py-12 relative">
@@ -35,7 +69,7 @@ export default function LoginPage() {
       {/* Tab toggle */}
       <div className="flex p-1 bg-surface-container-low rounded-xl mb-8 gap-1">
         <button
-          onClick={() => setMode("login")}
+          onClick={() => { setMode("login"); setError(""); }}
           className={`flex-1 py-3 rounded-lg font-headline font-bold text-sm tap-scale transition-all ${
             mode === "login" ? "bg-surface-container-highest text-secondary" : "text-on-surface-variant"
           }`}
@@ -43,7 +77,7 @@ export default function LoginPage() {
           Connexion
         </button>
         <button
-          onClick={() => setMode("register")}
+          onClick={() => { setMode("register"); setError(""); }}
           className={`flex-1 py-3 rounded-lg font-headline font-bold text-sm tap-scale transition-all ${
             mode === "register" ? "bg-surface-container-highest text-secondary" : "text-on-surface-variant"
           }`}
@@ -110,8 +144,8 @@ export default function LoginPage() {
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
-              checked={cgу}
-              onChange={() => setCgu(!cgу)}
+              checked={cgu}
+              onChange={() => setCgu(!cgu)}
               className="mt-0.5 accent-secondary"
             />
             <span className="text-on-surface-variant text-xs leading-relaxed">
@@ -122,10 +156,19 @@ export default function LoginPage() {
           </label>
         )}
 
+        {error && (
+          <div className="flex items-center gap-2 bg-error/10 border border-error/20 rounded-lg px-4 py-3">
+            <Icon name="error" className="text-error shrink-0" size={16} />
+            <p className="text-error text-xs">{error}</p>
+          </div>
+        )}
+
         <button
-          onClick={() => router.push("/discover")}
-          className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-on-primary-fixed tap-scale mt-2"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-on-primary-fixed tap-scale mt-2 flex items-center justify-center gap-2 disabled:opacity-60"
         >
+          {loading && <Icon name="progress_activity" size={18} className="animate-spin" />}
           {mode === "login" ? "Se connecter" : "Créer mon compte"}
         </button>
 

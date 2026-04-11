@@ -47,7 +47,7 @@ export default function QuestDetailPage() {
       {/* Hero */}
       <div className="relative h-64 overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=800&q=80"
+          src="/images/bab-mansour.jpg"
           alt={quest.title}
           className="w-full h-full object-cover"
         />
