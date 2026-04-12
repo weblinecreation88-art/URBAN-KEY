@@ -1,94 +1,82 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import Icon from "@/components/Icon";
 
 export default function OnboardingPage() {
   return (
-    <div className="min-h-dvh flex flex-col overflow-hidden bg-background relative">
-      {/* Ambient glows */}
-      <div className="fixed top-1/4 -left-20 w-64 h-64 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="fixed bottom-1/4 -right-20 w-80 h-80 bg-secondary/5 rounded-full blur-[120px] pointer-events-none" />
+    <div className="min-h-dvh flex flex-col overflow-hidden relative">
 
-      {/* Header */}
-      <header className="pt-12 px-8 flex flex-col items-center z-10">
-        <div className="flex items-center gap-2">
-          <Icon name="explore" filled className="text-primary text-4xl" size={36} />
-          <h1 className="font-headline font-black text-4xl text-primary tracking-tighter">
-            UrbanKey
-          </h1>
+      {/* Image plein écran */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/images/hero-thomas-pellow.png"
+          alt="Meknès"
+          fill
+          className="object-cover object-center"
+          priority
+        />
+        {/* Dégradé sombre du bas — texte lisible */}
+        <div className="absolute inset-0"
+          style={{ background: "linear-gradient(to bottom, rgba(20,10,0,0.35) 0%, rgba(20,10,0,0.55) 40%, rgba(20,10,0,0.92) 75%, rgba(20,10,0,0.98) 100%)" }} />
+      </div>
+
+      {/* Logo en haut */}
+      <header className="relative z-10 pt-14 px-6 flex items-center gap-2">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "#8c4b00" }}>
+          <Icon name="key" className="text-white" size={18} filled />
         </div>
+        <span className="font-headline font-black text-2xl text-white tracking-tight">UrbanKey</span>
       </header>
 
-      {/* Hero */}
-      <main className="flex-grow flex flex-col items-center justify-center relative w-full px-6">
-        {/* Background city image */}
-        <div className="absolute inset-0 z-0">
-          <div
-            className="w-full h-full bg-cover bg-center opacity-60"
-            style={{
-              backgroundImage: "url('/images/hero-thomas-pellow.png')",
-            }}
-          />
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background" />
+      {/* Contenu centré en bas */}
+      <main className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-10">
+
+        {/* Badge */}
+        <div className="mb-5">
+          <span className="inline-block px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em]"
+            style={{ background: "rgba(140,75,0,0.5)", color: "#f5d48e", border: "1px solid rgba(245,212,142,0.25)" }}>
+            Expérience Immersive
+          </span>
         </div>
 
-        {/* Content card */}
-        <div className="relative z-10 w-full max-w-md mt-auto mb-12 flex flex-col items-center text-center">
-          <div
-            className="inline-block px-4 py-1 mb-6 rounded-full backdrop-blur-md"
-            style={{
-              background: "rgba(103,69,0,0.3)",
-              border: "1px solid rgba(240,190,114,0.2)",
-            }}
-          >
-            <span className="text-secondary text-[10px] font-bold uppercase tracking-[0.2em]">
-              Expérience Immersive
-            </span>
-          </div>
+        {/* Titre */}
+        <h1 className="font-headline font-black text-white leading-tight mb-4"
+          style={{ fontSize: "clamp(2rem, 8vw, 3rem)" }}>
+          Explore la ville<br />
+          <span style={{ color: "#f5c96a", fontStyle: "italic" }}>comme un jeu</span>
+        </h1>
 
-          <h2 className="font-headline text-5xl font-extrabold text-on-surface leading-tight tracking-tight mb-4">
-            Explore la ville <br />
-            <span className="text-primary italic">comme un jeu</span>
-          </h2>
+        {/* Sous-titre */}
+        <p className="text-white/70 text-sm leading-relaxed mb-8 max-w-xs">
+          Découvrez les secrets cachés de Meknès à travers des quêtes urbaines inédites.
+        </p>
 
-          <p className="text-on-surface-variant text-base max-w-[280px] mb-12 leading-relaxed">
-            Découvrez les secrets cachés de Meknès à travers des quêtes urbaines inédites.
-          </p>
+        {/* CTAs */}
+        <div className="flex flex-col gap-3 w-full">
+          <Link href="/discover"
+            className="w-full py-4 rounded-2xl font-headline font-bold text-white text-center flex items-center justify-center gap-2 tap-scale"
+            style={{ background: "linear-gradient(135deg, #8c4b00, #c97a00)", boxShadow: "0 4px 24px rgba(140,75,0,0.4)" }}>
+            Découvrir sans compte
+            <Icon name="arrow_forward" size={18} />
+          </Link>
 
-          {/* CTAs */}
-          <div className="w-full space-y-4">
-            <Link
-              href="/discover"
-              className="cta-gradient w-full py-5 rounded-xl font-headline font-bold text-on-primary-fixed shadow-2xl flex items-center justify-center gap-2 tap-scale"
-            >
-              Découvrir sans compte
-              <Icon name="arrow_forward" className="text-lg" size={20} />
-            </Link>
+          <Link href="/login"
+            className="w-full py-4 rounded-2xl font-headline font-semibold text-white text-center flex items-center justify-center tap-scale"
+            style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.2)" }}>
+            Se connecter / S&apos;inscrire
+          </Link>
+        </div>
 
-            <Link
-              href="/login"
-              className="w-full py-5 rounded-xl font-headline font-semibold text-on-surface tap-scale flex items-center justify-center"
-              style={{
-                background: "rgba(42,53,69,0.6)",
-                backdropFilter: "blur(16px)",
-                border: "1px solid rgba(64,72,72,0.15)",
-              }}
-            >
-              Se connecter / S&apos;inscrire
-            </Link>
-          </div>
+        {/* Footer link */}
+        <div className="flex justify-center mt-6">
+          <button className="text-white/50 text-xs font-medium flex items-center gap-1 tap-scale">
+            En savoir plus
+            <Icon name="info" size={14} />
+          </button>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="pb-10 pt-4 px-8 flex justify-center z-10">
-        <button className="text-secondary font-label text-sm font-medium flex items-center gap-1 tap-scale">
-          En savoir plus
-          <Icon name="info" size={16} />
-        </button>
-      </footer>
     </div>
   );
 }
