@@ -1,9 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2026-03-25.dahlia",
-});
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +11,12 @@ export async function POST(req: NextRequest) {
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json({ error: "Stripe non configuré" }, { status: 503 });
     }
+
+    // Lazy import to avoid module-level instantiation with empty key during build
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2026-03-25.dahlia",
+    });
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // centimes
