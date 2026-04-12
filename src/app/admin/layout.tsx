@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Icon from "@/components/Icon";
 
@@ -18,37 +18,72 @@ const NAV = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      setSidebarOpen(!mobile); // ouvert sur desktop, fermé sur mobile
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  function navigate(href: string) {
+    router.push(href);
+    if (isMobile) setSidebarOpen(false); // ferme le menu sur mobile après navigation
+  }
 
   return (
     <div className="min-h-dvh flex" style={{ background: "#f5ead6", fontFamily: "var(--font-body)" }}>
+
+      {/* Overlay mobile */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          style={{ background: "rgba(44,26,0,0.4)", backdropFilter: "blur(2px)" }}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
-        className="flex flex-col shrink-0 transition-all duration-200"
+        className="flex flex-col shrink-0 transition-all duration-200 z-50"
         style={{
-          width: sidebarOpen ? 220 : 64,
+          width: sidebarOpen ? 220 : isMobile ? 0 : 56,
           background: "#fff9ed",
-          borderRight: "1px solid rgba(140,122,90,0.2)",
+          borderRight: sidebarOpen || !isMobile ? "1px solid rgba(140,122,90,0.2)" : "none",
           minHeight: "100dvh",
+          position: isMobile ? "fixed" : "relative",
+          overflow: "hidden",
         }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2 px-4 py-5" style={{ borderBottom: "1px solid rgba(140,122,90,0.15)" }}>
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#8c4b00" }}>
+        <div className="flex items-center gap-2 px-4 py-5 shrink-0"
+          style={{ borderBottom: "1px solid rgba(140,122,90,0.15)" }}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: "#8c4b00" }}>
             <Icon name="key" className="text-white" size={16} />
           </div>
-          {sidebarOpen && <span className="font-headline font-bold text-primary text-sm">UrbanKey Admin</span>}
+          {sidebarOpen && (
+            <span className="font-headline font-bold text-primary text-sm whitespace-nowrap">
+              UrbanKey Admin
+            </span>
+          )}
         </div>
 
         {/* Nav */}
-        <nav className="flex flex-col gap-1 p-2 flex-1">
+        <nav className="flex flex-col gap-1 p-2 flex-1 overflow-y-auto">
           {NAV.map(({ href, icon, label }) => {
             const active = pathname === href || (href !== "/admin" && pathname.startsWith(href));
             return (
               <button
                 key={href}
-                onClick={() => router.push(href)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all"
+                onClick={() => navigate(href)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all whitespace-nowrap"
                 style={{
                   background: active ? "rgba(140,75,0,0.12)" : "transparent",
                   color: active ? "#8c4b00" : "#5c3d1e",
@@ -61,18 +96,41 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
-        {/* Toggle */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="m-2 p-2 rounded-xl flex items-center justify-center"
-          style={{ border: "1px solid rgba(140,122,90,0.2)" }}
-        >
-          <Icon name={sidebarOpen ? "chevron_left" : "chevron_right"} className="text-on-surface-variant" size={16} />
-        </button>
+        {/* Toggle (desktop only) */}
+        {!isMobile && (
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="m-2 p-2 rounded-xl flex items-center justify-center shrink-0"
+            style={{ border: "1px solid rgba(140,122,90,0.2)" }}
+          >
+            <Icon
+              name={sidebarOpen ? "chevron_left" : "chevron_right"}
+              className="text-on-surface-variant"
+              size={16}
+            />
+          </button>
+        )}
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto min-w-0">
+        {/* Header mobile avec burger */}
+        {isMobile && (
+          <div className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3"
+            style={{ background: "rgba(255,249,237,0.97)", borderBottom: "1px solid rgba(140,122,90,0.15)", backdropFilter: "blur(8px)" }}>
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-9 h-9 rounded-xl flex items-center justify-center tap-scale"
+              style={{ background: "rgba(140,75,0,0.1)" }}
+            >
+              <Icon name="menu" className="text-primary" size={20} />
+            </button>
+            <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: "#8c4b00" }}>
+              <Icon name="key" className="text-white" size={12} />
+            </div>
+            <span className="font-headline font-bold text-primary text-sm">Admin</span>
+          </div>
+        )}
         {children}
       </main>
     </div>

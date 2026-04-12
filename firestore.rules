@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Utilisateurs ──────────────────────────────────────────────
+    // Chaque utilisateur lit/écrit uniquement son propre document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Sessions de jeu — lecture/écriture par le propriétaire uniquement
+      match /sessions/{sessionId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Achats — lecture/écriture par le propriétaire uniquement
+      match /purchases/{purchaseId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // ── Parcours ──────────────────────────────────────────────────
+    // Lecture publique (tout le monde peut voir les parcours)
+    // Écriture réservée aux admins uniquement
+    match /parcours/{parcoursId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // ── Villes ────────────────────────────────────────────────────
+    // Lecture publique, écriture admin uniquement
+    match /villes/{villeId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // ── Codes promo ───────────────────────────────────────────────
+    // Lecture authentifiée (pour valider un code au checkout)
+    // Écriture admin uniquement
+    match /promoCodes/{codeId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // ── NPS ───────────────────────────────────────────────────────
+    // Création autorisée (authentifié ou anonyme)
+    // Lecture admin uniquement
+    match /npsResponses/{npsId} {
+      allow create: if true;
+      allow read: if request.auth != null && isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ── Fonction helper admin ─────────────────────────────────────
+    // Vérifie si l'utilisateur a le rôle admin dans son document Firestore
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+  }
+}
