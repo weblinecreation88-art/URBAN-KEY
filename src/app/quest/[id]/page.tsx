@@ -1,249 +1,246 @@
 "use client";
 
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import Image from "next/image";
 import Icon from "@/components/Icon";
+import { PARCOURS_MEKNES, MAIN_STEPS } from "@/data/parcours";
+import { useAuth } from "@/context/AuthContext";
 
-const quest = {
-  id: "vieux-quartier",
-  title: "Vieux Quartier — Meknès",
-  subtitle: "Médina historique",
-  city: "Meknès",
-  duration: "90 min",
-  difficulty: "Moyen",
-  difficultyColor: "text-secondary bg-secondary-container",
-  price: "100 MAD",
-  priceNote: "Achat unique · Valide 30 jours",
-  rating: 4.8,
-  reviews: 124,
-  description:
-    "Plonge au cœur de la médina de Meknès, ville impériale et patrimoine de l'UNESCO. Résous 6 énigmes cachées dans les ruelles, souks et monuments historiques. De Bab Mansour aux jardins de l'Agdal, chaque indice te rapproche du secret final.",
-  highlights: [
-    "6 étapes + finale à 3 clés",
-    "Patrimoine UNESCO valorisé",
-    "Compatible PMR (parcours A)",
-    "Disponible en FR / EN / AR",
-  ],
-  steps: [
-    { order: 1, title: "Bab Mansour", type: "Énigme textuelle", ar: false },
-    { order: 2, title: "Place El-Hedim", type: "QCM + Géofencing", ar: false },
-    { order: 3, title: "Mausolée Moulay Ismail", type: "AR Marker", ar: true },
-    { order: 4, title: "Souk Nejjarine", type: "Énigme visuelle", ar: false },
-    { order: 5, title: "Bou Inania Médersa", type: "AR Surface", ar: true },
-    { order: 6, title: "Bassin de l'Agdal", type: "Finale 3 clés", ar: false },
-  ],
-  reviews_list: [
-    { author: "VOID_WALKER", rating: 5, text: "Expérience incroyable, immersion totale dans la médina." },
-    { author: "NEON_GHOST", rating: 5, text: "Parfait pour découvrir Meknès autrement. Les énigmes sont bien dosées." },
-    { author: "ECHO_REBEL", rating: 4, text: "Très bon parcours, quelques indices un peu flous sur l'étape 4." },
-  ],
-};
+const HERO_IMAGE = "/bab-mansour.jpg";
 
-export default function QuestDetailPage() {
+const REVIEWS = [
+  { author: "Ahmed B.", rating: 5, text: "Expérience incroyable ! Les énigmes sont bien dosées et les lieux choisis magnifiques.", date: "Mars 2026" },
+  { author: "Sara L.", rating: 5, text: "Parfait pour découvrir Meknès autrement. On a adoré le défi au Mausolée.", date: "Fév. 2026" },
+  { author: "Karim M.", rating: 4, text: "Super concept, quelques QR codes difficiles à trouver mais très immersif.", date: "Jan. 2026" },
+];
+
+export default function QuestDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<"desc" | "steps" | "avis">("desc");
+
+  // Use real data if ID matches, otherwise show Meknès by default
+  const quest = PARCOURS_MEKNES;
+  const mainSteps = MAIN_STEPS;
+
+  const difficultyColor = {
+    Facile: { bg: "rgba(41,103,103,0.12)", color: "#296767" },
+    Moyen: { bg: "rgba(140,75,0,0.1)", color: "#8c4b00" },
+    Difficile: { bg: "rgba(186,26,26,0.08)", color: "#ba1a1a" },
+  }[quest.difficulty] ?? { bg: "rgba(140,75,0,0.1)", color: "#8c4b00" };
 
   return (
-    <div className="min-h-dvh bg-background text-on-background pb-28">
+    <div className="min-h-dvh bg-background pb-32">
       {/* Hero */}
-      <div className="relative h-64 overflow-hidden">
-        <img
-          src="/images/bab-mansour.jpg"
-          alt={quest.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(8,20,34,0.5) 0%, rgba(8,20,34,0.95) 100%)" }} />
+      <div className="relative h-64 w-full overflow-hidden">
+        <Image src={HERO_IMAGE} alt={quest.title} fill className="object-cover" priority />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(44,26,0,0.3) 0%, rgba(44,26,0,0.85) 100%)" }} />
 
-        <button
-          onClick={() => router.back()}
-          className="absolute top-12 left-5 w-10 h-10 rounded-full flex items-center justify-center tap-scale"
-          style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(12px)" }}
-        >
-          <Icon name="arrow_back" className="text-white" />
+        {/* Back button */}
+        <button onClick={() => router.back()}
+          className="absolute top-12 left-4 w-10 h-10 rounded-full flex items-center justify-center tap-scale"
+          style={{ background: "rgba(255,249,237,0.15)", backdropFilter: "blur(8px)" }}>
+          <Icon name="arrow_back" className="text-white" size={20} />
         </button>
 
-        <button
-          className="absolute top-12 right-5 w-10 h-10 rounded-full flex items-center justify-center tap-scale"
-          style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(12px)" }}
-        >
-          <Icon name="bookmark_border" className="text-white" />
-        </button>
-
-        <div className="absolute bottom-5 left-5 right-5">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-700/80 text-white">
+        {/* Title overlay */}
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-5">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide"
+              style={{ background: difficultyColor.bg, color: difficultyColor.color, backdropFilter: "blur(4px)" }}>
               {quest.difficulty}
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-black/40 text-white">
-              {quest.duration}
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-wide"
+              style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)" }}>
+              <Icon name="schedule" size={10} className="inline mr-1" />{quest.duration}
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-black/40 text-white">
-              PMR ✓
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-wide"
+              style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)" }}>
+              <Icon name="route" size={10} className="inline mr-1" />{mainSteps.length} étapes
             </span>
           </div>
-          <h1 className="font-headline font-black text-2xl text-white tracking-tight leading-tight drop-shadow">{quest.title}</h1>
-          <div className="flex items-center gap-1.5 mt-1">
-            <Icon name="location_on" className="text-amber-300" size={14} />
-            <span className="text-amber-300 text-xs font-medium">{quest.city}</span>
-            <span className="text-white/50 text-xs mx-1">·</span>
-            <Icon name="star" filled className="text-amber-400" size={14} />
-            <span className="text-amber-400 text-xs font-bold">{quest.rating}</span>
-            <span className="text-white/50 text-xs">({quest.reviews} avis)</span>
-          </div>
+          <h1 className="font-headline font-black text-2xl text-white leading-tight">{quest.title}</h1>
+          <p className="text-white/70 text-sm mt-1">
+            <Icon name="location_on" size={12} className="inline mr-1" />{quest.city}
+          </p>
         </div>
       </div>
 
-      <main className="px-5 space-y-6 mt-6">
-        {/* Price + CTA */}
-        <div className="flex items-center justify-between bg-surface-container-high rounded-xl p-4">
-          <div>
-            <p className="font-headline font-black text-2xl text-secondary">{quest.price}</p>
-            <p className="text-on-surface-variant text-[10px] mt-0.5">{quest.priceNote}</p>
-          </div>
-          <Link
-            href={`/checkout?quest=${quest.id}`}
-            className="px-6 py-3 rounded-xl cta-gradient font-headline font-bold text-on-primary-fixed tap-scale text-sm"
-          >
-            Acheter
-          </Link>
+      {/* Price + rating bar */}
+      <div className="px-5 py-4 flex items-center justify-between"
+        style={{ borderBottom: "1px solid rgba(140,122,90,0.15)" }}>
+        <div>
+          <p className="font-headline font-black text-2xl text-primary">{quest.price} <span className="text-base font-bold">{quest.currency}</span></p>
+          <p className="text-on-surface-variant text-[10px]">Achat unique · Valide 30 jours</p>
         </div>
+        <div className="flex items-center gap-1.5">
+          <Icon name="star" filled style={{ color: "#c97a00" }} size={18} />
+          <span className="font-headline font-bold text-on-surface text-base">4.8</span>
+          <span className="text-on-surface-variant text-xs">({REVIEWS.length} avis)</span>
+        </div>
+      </div>
 
-        {/* Description */}
-        <section>
-          <h2 className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant mb-3">Description</h2>
-          <p className="text-on-surface text-sm leading-relaxed">{quest.description}</p>
-        </section>
+      {/* Tabs */}
+      <div className="flex px-5 pt-4 gap-1 mb-1">
+        {(["desc", "steps", "avis"] as const).map(t => (
+          <button key={t} onClick={() => setActiveTab(t)}
+            className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all tap-scale"
+            style={{
+              background: activeTab === t ? "#8c4b00" : "rgba(140,122,90,0.1)",
+              color: activeTab === t ? "#fff" : "#5c3d1e",
+            }}>
+            {{ desc: "Description", steps: "Étapes", avis: "Avis" }[t]}
+          </button>
+        ))}
+      </div>
 
-        {/* Highlights */}
-        <section>
-          <h2 className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant mb-3">Points clés</h2>
-          <div className="grid grid-cols-2 gap-2">
-            {quest.highlights.map((h) => (
-              <div key={h} className="flex items-start gap-2 bg-surface-container-high rounded-lg p-3">
-                <Icon name="check_circle" filled className="text-primary mt-0.5" size={14} />
-                <span className="text-on-surface text-xs leading-snug">{h}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+      <div className="px-5 py-4 space-y-4">
 
-        {/* Map preview */}
-        <section>
-          <h2 className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant mb-3">Circuit</h2>
-          <div className="relative rounded-xl overflow-hidden h-44">
-            <img
-              src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=60"
-              alt="Carte du circuit"
-              className="w-full h-full object-cover opacity-60"
-            />
-            <div className="absolute inset-0" style={{ background: "rgba(8,20,34,0.4)" }} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button
-                onClick={() => router.push("/map")}
-                className="flex items-center gap-2 px-4 py-2 rounded-full tap-scale"
-                style={{ background: "rgba(32,43,58,0.85)", backdropFilter: "blur(12px)", border: "1px solid rgba(162,207,206,0.2)" }}
-              >
-                <Icon name="open_in_full" className="text-primary" size={16} />
-                <span className="text-on-surface text-xs font-bold">Agrandir la carte</span>
-              </button>
+        {/* Description tab */}
+        {activeTab === "desc" && (
+          <>
+            <div className="parchment-card rounded-2xl p-5">
+              <p className="text-on-surface text-sm leading-relaxed">
+                Plonge au cœur de la Cité Impériale de Meknès, inscrite au patrimoine mondial de l&apos;UNESCO.
+                Résous {mainSteps.length} énigmes cachées dans les monuments historiques les plus emblématiques.
+                De Bab Mansour au Mausolée de Moulay Ismaïl, chaque indice révèle un fragment du passé impérial.
+              </p>
             </div>
-            {/* Step dots */}
-            {[
-              { left: "20%", top: "30%" },
-              { left: "38%", top: "55%" },
-              { left: "55%", top: "35%" },
-              { left: "65%", top: "60%" },
-              { left: "78%", top: "40%" },
-              { left: "85%", top: "65%" },
-            ].map((pos, i) => (
-              <div
-                key={i}
-                className="absolute w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black"
-                style={{
-                  left: pos.left,
-                  top: pos.top,
-                  background: i === 0 ? "#f0be72" : "rgba(32,43,58,0.85)",
-                  border: "1px solid rgba(162,207,206,0.4)",
-                  color: i === 0 ? "#081422" : "#a2cfce",
-                }}
-              >
-                {i + 1}
-              </div>
-            ))}
-          </div>
-        </section>
 
-        {/* Steps */}
-        <section>
-          <h2 className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant mb-3">Étapes du parcours</h2>
+            <div className="parchment-card rounded-2xl p-5">
+              <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant mb-3">Points clés</p>
+              {[
+                { icon: "route", text: `${mainSteps.length} étapes principales + bonus` },
+                { icon: "history_edu", text: "Patrimoine UNESCO valorisé" },
+                { icon: "accessible", text: "Compatible PMR (parcours A)" },
+                { icon: "language", text: "Disponible en FR / EN / AR" },
+                { icon: "qr_code", text: "QR codes physiques + géofencing auto" },
+                { icon: "timer", text: `Durée estimée : ${quest.duration}` },
+              ].map(({ icon, text }) => (
+                <div key={text} className="flex items-center gap-3 py-2" style={{ borderBottom: "1px solid rgba(140,122,90,0.08)" }}>
+                  <Icon name={icon} className="text-secondary shrink-0" size={16} />
+                  <span className="text-on-surface text-sm">{text}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Mini map placeholder */}
+            <div className="parchment-card rounded-2xl overflow-hidden">
+              <div className="px-5 pt-4 pb-2 flex items-center justify-between">
+                <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Circuit</p>
+                <button onClick={() => router.push("/map")}
+                  className="text-xs font-bold text-secondary flex items-center gap-1 tap-scale">
+                  Agrandir <Icon name="open_in_full" size={12} />
+                </button>
+              </div>
+              <div className="mx-5 mb-5 rounded-xl overflow-hidden flex flex-col items-center justify-center gap-2"
+                style={{ height: 140, background: "rgba(140,122,90,0.08)", border: "1px solid rgba(140,122,90,0.2)" }}>
+                <Icon name="map" className="text-on-surface-variant" size={36} />
+                <p className="text-on-surface-variant text-xs">Carte interactive</p>
+                <button onClick={() => router.push("/map")}
+                  className="px-4 py-1.5 rounded-lg text-xs font-bold tap-scale"
+                  style={{ background: "rgba(41,103,103,0.12)", color: "#296767" }}>
+                  Voir la carte
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Steps tab */}
+        {activeTab === "steps" && (
           <div className="space-y-2">
-            {quest.steps.map((step) => (
-              <div key={step.order} className="flex items-center gap-4 bg-surface-container-high rounded-xl p-3.5">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black font-headline shrink-0"
-                  style={{ background: "rgba(162,207,206,0.1)", color: "#a2cfce" }}
-                >
-                  {step.order}
+            {mainSteps.map((step, i) => (
+              <div key={step.id} className="parchment-card rounded-xl px-4 py-3 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0"
+                  style={{ background: "#8c4b00" }}>
+                  {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-on-surface font-medium text-sm leading-tight truncate">{step.title}</p>
-                  <p className="text-on-surface-variant text-[10px] mt-0.5">{step.type}</p>
+                  <p className="font-bold text-on-surface text-sm truncate">{step.title}</p>
+                  <p className="text-on-surface-variant text-[10px] truncate">{step.lieu} · {step.type}</p>
                 </div>
-                {step.ar && (
-                  <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-tertiary bg-tertiary-container">
-                    AR
-                  </span>
-                )}
+                <span className="text-[10px] font-bold text-secondary shrink-0">{step.scoreBase} pts</span>
               </div>
             ))}
-          </div>
-        </section>
-
-        {/* Reviews */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Avis joueurs</h2>
-            <div className="flex items-center gap-1">
-              <Icon name="star" filled className="text-secondary" size={14} />
-              <span className="text-secondary font-bold text-sm">{quest.rating}</span>
-              <span className="text-on-surface-variant text-xs">/5</span>
+            <div className="parchment-card rounded-xl px-4 py-3 flex items-center gap-3"
+              style={{ opacity: 0.6 }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: "rgba(140,122,90,0.2)" }}>
+                <Icon name="emoji_events" className="text-on-surface-variant" size={16} />
+              </div>
+              <p className="text-on-surface-variant text-sm font-medium">Finale — Collecte des clés</p>
             </div>
           </div>
+        )}
+
+        {/* Reviews tab */}
+        {activeTab === "avis" && (
           <div className="space-y-3">
-            {quest.reviews_list.map((r) => (
-              <div key={r.author} className="bg-surface-container-high rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-headline font-bold text-xs text-on-surface tracking-tight">{r.author}</span>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Icon
-                        key={i}
-                        name="star"
-                        filled={i < r.rating}
-                        className={i < r.rating ? "text-secondary" : "text-on-surface-variant/30"}
-                        size={12}
-                      />
-                    ))}
-                  </div>
+            {/* Global rating */}
+            <div className="parchment-card rounded-2xl p-5 flex items-center gap-5">
+              <div className="text-center">
+                <p className="font-headline font-black text-4xl text-primary">4.8</p>
+                <div className="flex gap-0.5 mt-1 justify-center">
+                  {[1,2,3,4,5].map(i => (
+                    <Icon key={i} name="star" filled size={14} style={{ color: "#c97a00" }} />
+                  ))}
                 </div>
-                <p className="text-on-surface-variant text-xs leading-relaxed">{r.text}</p>
+                <p className="text-on-surface-variant text-[10px] mt-1">{REVIEWS.length} avis</p>
+              </div>
+              <div className="flex-1 space-y-1.5">
+                {[5,4,3,2,1].map(s => (
+                  <div key={s} className="flex items-center gap-2">
+                    <span className="text-[10px] text-on-surface-variant w-2">{s}</span>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(140,122,90,0.15)" }}>
+                      <div className="h-full rounded-full" style={{
+                        width: s === 5 ? "75%" : s === 4 ? "20%" : "5%",
+                        background: s >= 4 ? "#8c4b00" : "rgba(140,122,90,0.4)",
+                      }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {REVIEWS.map(r => (
+              <div key={r.author} className="parchment-card rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black text-white"
+                      style={{ background: "#8c4b00" }}>
+                      {r.author.slice(0, 1)}
+                    </div>
+                    <p className="font-bold text-on-surface text-sm">{r.author}</p>
+                  </div>
+                  <p className="text-on-surface-variant text-[10px]">{r.date}</p>
+                </div>
+                <div className="flex gap-0.5 mb-2">
+                  {[...Array(r.rating)].map((_, i) => (
+                    <Icon key={i} name="star" filled size={12} style={{ color: "#c97a00" }} />
+                  ))}
+                </div>
+                <p className="text-on-surface text-sm leading-relaxed">{r.text}</p>
               </div>
             ))}
           </div>
-        </section>
-      </main>
+        )}
+      </div>
 
-      {/* Sticky bottom CTA */}
-      <div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md px-5 pb-8 pt-4"
-        style={{ background: "linear-gradient(to top, rgba(255,249,237,1) 60%, transparent)" }}
-      >
-        <Link
-          href={`/checkout?quest=${quest.id}`}
-          className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-on-primary-fixed tap-scale flex items-center justify-center gap-2"
-        >
-          <Icon name="shopping_cart" size={20} />
-          Acheter ce parcours — {quest.price}
-        </Link>
+      {/* Sticky CTA */}
+      <div className="fixed bottom-0 left-0 right-0 px-5 py-4 max-w-lg mx-auto"
+        style={{ background: "rgba(255,249,237,0.97)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(140,122,90,0.2)" }}>
+        <button
+          onClick={() => router.push(user ? `/checkout?quest=${quest.id}` : "/login")}
+          className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-white tap-scale flex items-center justify-center gap-2">
+          <Icon name="shopping_cart" size={18} />
+          {user ? `Acheter — ${quest.price} ${quest.currency}` : "Connexion pour acheter"}
+        </button>
+        <p className="text-center text-on-surface-variant text-[10px] mt-2">
+          Achat unique · Valide 30 jours · Satisfait ou remboursé
+        </p>
       </div>
     </div>
   );
