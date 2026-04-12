@@ -56,7 +56,8 @@ export default function MapPage() {
 
   // Init Google Maps
   useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    // NEXT_PUBLIC_ vars are inlined at build time — fallback ensures production works
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "AIzaSyDvm3X_xExGFimV8z7pkAXzYe7tVs8cv6o";
     if (!apiKey) { setMapError("Clé API Google Maps manquante."); return; }
 
     setOptions({ key: apiKey, v: "weekly" });

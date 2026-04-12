@@ -136,39 +136,25 @@ export default function QuestDetailPage({ params }: { params: Promise<{ id: stri
                 </button>
               </div>
               <div className="mx-5 mb-5 rounded-xl overflow-hidden relative" style={{ height: 180 }}>
-                {/* Google Maps Static API — affiche le circuit des étapes */}
-                {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
-                  <>
-                    <img
-                      src={`https://maps.googleapis.com/maps/api/staticmap?center=33.8920,-5.5524&zoom=14&size=600x360&scale=2&maptype=roadmap&style=feature:all|element:geometry|color:0xf5ead6&style=feature:road|element:geometry|color:0xe8d5b0&style=feature:water|element:geometry|color:0xc8d8d8&style=feature:poi|visibility:off${
-                        mainSteps.map((s, i) =>
-                          `&markers=color:0x8c4b00|label:${i + 1}|${s.coords.lat},${s.coords.lng}`
-                        ).join("")
-                      }&path=color:0x8c4b00|weight:2|${
-                        mainSteps.map(s => `${s.coords.lat},${s.coords.lng}`).join("|")
-                      }&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
-                      alt="Circuit parcours"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      onClick={() => router.push("/map")}
-                      className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold tap-scale"
-                      style={{ background: "rgba(255,249,237,0.95)", color: "#8c4b00", backdropFilter: "blur(8px)" }}>
-                      <Icon name="open_in_full" size={13} />
-                      Carte interactive
-                    </button>
-                  </>
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-2"
-                    style={{ background: "rgba(140,122,90,0.08)" }}>
-                    <Icon name="map" className="text-on-surface-variant" size={36} />
-                    <button onClick={() => router.push("/map")}
-                      className="px-4 py-1.5 rounded-lg text-xs font-bold tap-scale"
-                      style={{ background: "rgba(41,103,103,0.12)", color: "#296767" }}>
-                      Voir la carte
-                    </button>
-                  </div>
-                )}
+                {/* NEXT_PUBLIC_ vars are inlined at build time — fallback ensures production works */}
+                <img
+                  src={`https://maps.googleapis.com/maps/api/staticmap?center=33.8920,-5.5524&zoom=14&size=600x360&scale=2&maptype=roadmap&style=feature:all|element:geometry|color:0xf5ead6&style=feature:road|element:geometry|color:0xe8d5b0&style=feature:water|element:geometry|color:0xc8d8d8&style=feature:poi|visibility:off${
+                    mainSteps.map((s, i) =>
+                      `&markers=color:0x8c4b00|label:${i + 1}|${s.coords.lat},${s.coords.lng}`
+                    ).join("")
+                  }&path=color:0x8c4b00|weight:2|${
+                    mainSteps.map(s => `${s.coords.lat},${s.coords.lng}`).join("|")
+                  }&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "AIzaSyDvm3X_xExGFimV8z7pkAXzYe7tVs8cv6o"}`}
+                  alt="Circuit parcours"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  onClick={() => router.push("/map")}
+                  className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold tap-scale"
+                  style={{ background: "rgba(255,249,237,0.95)", color: "#8c4b00", backdropFilter: "blur(8px)" }}>
+                  <Icon name="open_in_full" size={13} />
+                  Carte interactive
+                </button>
               </div>
             </div>
           </>
