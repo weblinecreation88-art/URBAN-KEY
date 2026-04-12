@@ -10,6 +10,8 @@ const NAV = [
   { href: "/admin/villes", icon: "location_city", label: "Villes" },
   { href: "/admin/users", icon: "group", label: "Utilisateurs" },
   { href: "/admin/promos", icon: "local_offer", label: "Promos" },
+  { href: "/qr", icon: "qr_code", label: "QR Codes" },
+  { href: "/admin/export", icon: "picture_as_pdf", label: "Export PDF" },
   { href: "/admin/settings", icon: "settings", label: "Paramètres" },
 ];
 
