@@ -56,38 +56,38 @@ export default function QuestDetailPage() {
         <button
           onClick={() => router.back()}
           className="absolute top-12 left-5 w-10 h-10 rounded-full flex items-center justify-center tap-scale"
-          style={{ background: "rgba(32,43,58,0.7)", backdropFilter: "blur(12px)" }}
+          style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(12px)" }}
         >
-          <Icon name="arrow_back" className="text-primary" />
+          <Icon name="arrow_back" className="text-white" />
         </button>
 
         <button
           className="absolute top-12 right-5 w-10 h-10 rounded-full flex items-center justify-center tap-scale"
-          style={{ background: "rgba(32,43,58,0.7)", backdropFilter: "blur(12px)" }}
+          style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(12px)" }}
         >
-          <Icon name="bookmark_border" className="text-primary" />
+          <Icon name="bookmark_border" className="text-white" />
         </button>
 
         <div className="absolute bottom-5 left-5 right-5">
           <div className="flex items-center gap-2 mb-2">
-            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${quest.difficultyColor}`}>
+            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-amber-700/80 text-white">
               {quest.difficulty}
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded text-primary bg-primary-container">
+            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-black/40 text-white">
               {quest.duration}
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded text-on-surface-variant bg-surface-container-high">
+            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-black/40 text-white">
               PMR ✓
             </span>
           </div>
-          <h1 className="font-headline font-black text-2xl text-on-surface tracking-tight leading-tight">{quest.title}</h1>
+          <h1 className="font-headline font-black text-2xl text-white tracking-tight leading-tight drop-shadow">{quest.title}</h1>
           <div className="flex items-center gap-1.5 mt-1">
-            <Icon name="location_on" className="text-primary" size={14} />
-            <span className="text-primary text-xs font-medium">{quest.city}</span>
-            <span className="text-on-surface-variant/50 text-xs mx-1">·</span>
-            <Icon name="star" filled className="text-secondary" size={14} />
-            <span className="text-secondary text-xs font-bold">{quest.rating}</span>
-            <span className="text-on-surface-variant/50 text-xs">({quest.reviews} avis)</span>
+            <Icon name="location_on" className="text-amber-300" size={14} />
+            <span className="text-amber-300 text-xs font-medium">{quest.city}</span>
+            <span className="text-white/50 text-xs mx-1">·</span>
+            <Icon name="star" filled className="text-amber-400" size={14} />
+            <span className="text-amber-400 text-xs font-bold">{quest.rating}</span>
+            <span className="text-white/50 text-xs">({quest.reviews} avis)</span>
           </div>
         </div>
       </div>
@@ -235,7 +235,7 @@ export default function QuestDetailPage() {
       {/* Sticky bottom CTA */}
       <div
         className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md px-5 pb-8 pt-4"
-        style={{ background: "linear-gradient(to top, rgba(8,20,34,1) 60%, transparent)" }}
+        style={{ background: "linear-gradient(to top, rgba(255,249,237,1) 60%, transparent)" }}
       >
         <Link
           href={`/checkout?quest=${quest.id}`}

@@ -118,7 +118,7 @@ export default function EndPage() {
         <section>
           <button
             className="w-full py-3.5 rounded-xl flex items-center justify-center gap-2 font-headline font-bold text-sm tap-scale"
-            style={{ background: "rgba(32,43,58,0.8)", border: "1px solid rgba(162,207,206,0.15)" }}
+            style={{ background: "rgba(236,224,202,1)", border: "1px solid rgba(140,122,90,0.3)" }}
           >
             <Icon name="share" className="text-primary" size={18} />
             <span className="text-on-surface">Partager mes résultats</span>
@@ -190,7 +190,7 @@ export default function EndPage() {
           <button
             onClick={() => router.push("/discover")}
             className="w-full py-3.5 rounded-xl font-headline font-semibold text-on-surface tap-scale"
-            style={{ background: "rgba(32,43,58,0.6)", border: "1px solid rgba(64,72,72,0.15)" }}
+            style={{ background: "rgba(236,224,202,0.8)", border: "1px solid rgba(140,122,90,0.2)" }}
           >
             Retour à mes parcours
           </button>

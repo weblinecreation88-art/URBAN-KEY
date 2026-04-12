@@ -6,15 +6,17 @@ import BottomNav from "@/components/BottomNav";
 import Icon from "@/components/Icon";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 
-const MEKNES_CENTER = { lat: 33.8935, lng: -5.5473 };
+const MEKNES_CENTER = { lat: 33.8920, lng: -5.5540 };
 
+// Vraies coordonnées GPS — Fiche de parcours officielle
 const questSteps = [
-  { id: "bab-mansour", lat: 33.8953, lng: -5.5524, title: "Bab Mansour", status: "active" as const },
-  { id: "place-hedim", lat: 33.8945, lng: -5.5510, title: "Place El-Hedim", status: "locked" as const },
-  { id: "mausolee", lat: 33.8920, lng: -5.5490, title: "Mausolée Moulay Ismail", status: "locked" as const },
-  { id: "souk", lat: 33.8930, lng: -5.5440, title: "Souk Nejjarine", status: "locked" as const },
-  { id: "medersa", lat: 33.8960, lng: -5.5465, title: "Bou Inania Médersa", status: "locked" as const },
-  { id: "agdal", lat: 33.8900, lng: -5.5415, title: "Bassin de l'Agdal", status: "locked" as const },
+  { id: "bab-mansour",      lat: 33.8953, lng: -5.5524, title: "Bab Mansour",                        order: 1, status: "active" as const },
+  { id: "lalla-aouda",      lat: 33.8945, lng: -5.5510, title: "Place Lalla Aouda",                   order: 2, status: "locked" as const },
+  { id: "mausolee",         lat: 33.8920, lng: -5.5490, title: "Mausolée Moulay Ismaïl",             order: 3, status: "locked" as const },
+  { id: "dar-lakbira",      lat: 33.8896, lng: -5.5600, title: "Dar Lakbira",                        order: 4, status: "locked" as const },
+  { id: "hri-souani",       lat: 33.8831, lng: -5.5605, title: "Hri Souani",                         order: 5, status: "locked" as const },
+  { id: "sarij-souani",     lat: 33.8831, lng: -5.5608, title: "Sarij Souani",                       order: 6, status: "locked" as const },
+  { id: "prison-qara",      lat: 33.8920, lng: -5.5524, title: "Prison de Qara & Pavillon",          order: 7, status: "locked" as const },
 ];
 
 export default function MapPage() {

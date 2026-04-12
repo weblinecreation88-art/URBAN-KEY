@@ -15,7 +15,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 flex justify-around items-center h-20 pb-4 px-4 bg-background/80 backdrop-blur-xl border-t border-outline-variant/15 rounded-t-2xl shadow-[0_-4px_32px_rgba(8,20,34,0.4)]">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 flex justify-around items-center h-20 pb-4 px-4 backdrop-blur-xl rounded-t-2xl" style={{ background: "rgba(255,249,237,0.95)", borderTop: "1px solid rgba(140,122,90,0.2)", boxShadow: "0 -4px 24px rgba(44,26,0,0.1)" }}>
       {navItems.map(({ href, icon, label }) => {
         const active = pathname === href || pathname.startsWith(href + "/");
         return (
@@ -24,14 +24,14 @@ export default function BottomNav() {
             href={href}
             className={`flex flex-col items-center justify-center gap-0.5 tap-scale px-3 py-1 rounded-xl transition-colors ${
               active
-                ? "text-secondary"
-                : "text-on-surface-variant/50 hover:text-on-surface-variant"
+                ? "text-primary"
+                : "text-on-surface-variant/60 hover:text-on-surface-variant"
             }`}
           >
             <Icon
               name={icon}
               filled={active}
-              className={active ? "drop-shadow-[0_0_6px_rgba(240,190,114,0.5)]" : ""}
+              className={active ? "drop-shadow-[0_0_6px_rgba(140,75,0,0.4)]" : ""}
             />
             <span className="font-label text-[10px] font-bold uppercase tracking-widest">
               {label}
