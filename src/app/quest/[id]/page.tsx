@@ -136,15 +136,8 @@ export default function QuestDetailPage({ params }: { params: Promise<{ id: stri
                 </button>
               </div>
               <div className="mx-5 mb-5 rounded-xl overflow-hidden relative" style={{ height: 180 }}>
-                {/* NEXT_PUBLIC_ vars are inlined at build time — fallback ensures production works */}
                 <img
-                  src={`https://maps.googleapis.com/maps/api/staticmap?center=33.8920,-5.5524&zoom=14&size=600x360&scale=2&maptype=roadmap&style=feature:all|element:geometry|color:0xf5ead6&style=feature:road|element:geometry|color:0xe8d5b0&style=feature:water|element:geometry|color:0xc8d8d8&style=feature:poi|visibility:off${
-                    mainSteps.map((s, i) =>
-                      `&markers=color:0x8c4b00|label:${i + 1}|${s.coords.lat},${s.coords.lng}`
-                    ).join("")
-                  }&path=color:0x8c4b00|weight:2|${
-                    mainSteps.map(s => `${s.coords.lat},${s.coords.lng}`).join("|")
-                  }&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "AIzaSyDvm3X_xExGFimV8z7pkAXzYe7tVs8cv6o"}`}
+                  src="https://res.cloudinary.com/dzntnjtkc/image/upload/v1776030377/Capture_d_%C3%A9cran_2026-04-12_224452_bareb0.png"
                   alt="Circuit parcours"
                   className="w-full h-full object-cover"
                 />
