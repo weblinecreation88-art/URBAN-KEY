@@ -17,7 +17,7 @@ const quests = [
     price: "100 MAD",
     rating: 4.8,
     accessible: true,
-    image: "/images/bab-mansour.jpg",
+    image: "https://res.cloudinary.com/db2ljqpdt/image/upload/v1776024577/e2df93b4-1115-4922-b854-4870a826e92a_kdc11h.png",
     modes: ["Solo", "Famille", "Groupe"] as Mode[],
   },
   {

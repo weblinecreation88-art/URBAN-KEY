@@ -7,7 +7,7 @@ import Icon from "@/components/Icon";
 import { PARCOURS_MEKNES, MAIN_STEPS } from "@/data/parcours";
 import { useAuth } from "@/context/AuthContext";
 
-const HERO_IMAGE = "/bab-mansour.jpg";
+const HERO_IMAGE = "https://res.cloudinary.com/db2ljqpdt/image/upload/v1776024577/e2df93b4-1115-4922-b854-4870a826e92a_kdc11h.png";
 
 const REVIEWS = [
   { author: "Ahmed B.", rating: 5, text: "Expérience incroyable ! Les énigmes sont bien dosées et les lieux choisis magnifiques.", date: "Mars 2026" },
@@ -16,7 +16,7 @@ const REVIEWS = [
 ];
 
 export default function QuestDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+  use(params); // id used in future multi-quest lookup
   const router = useRouter();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"desc" | "steps" | "avis">("desc");
