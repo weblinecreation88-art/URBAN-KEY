@@ -12,7 +12,32 @@ function normalize(s: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
     .trim();
+}
+
+// Distance de Levenshtein — nombre de caractères à changer pour passer de a à b
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+  return dp[m][n];
+}
+
+// Accepte la réponse si égale OU si distance ≤ tolérance selon longueur
+function isCorrect(userAnswer: string, expected: string): boolean {
+  const a = normalize(userAnswer);
+  const b = normalize(expected);
+  if (a === b) return true;
+  // Tolérance : 1 faute si réponse ≤ 6 chars, 2 fautes si > 6 chars
+  const tolerance = b.length <= 6 ? 1 : 2;
+  return levenshtein(a, b) <= tolerance;
 }
 
 function useTimer(running: boolean) {
@@ -57,7 +82,7 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
       setSuccess(true);
       return;
     }
-    if (normalize(answer) === normalize(step.reponse)) {
+    if (isCorrect(answer, step.reponse)) {
       setSuccess(true);
       setWrong(false);
     } else {
@@ -68,7 +93,7 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
   }
 
   function handleChoice(choice: string) {
-    if (normalize(choice) === normalize(step.reponse ?? "")) {
+    if (isCorrect(choice, step.reponse ?? "")) {
       setSuccess(true);
     } else {
       setWrong(true);
