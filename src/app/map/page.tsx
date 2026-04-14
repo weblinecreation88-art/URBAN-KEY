@@ -41,7 +41,7 @@ function MapContent() {
 
   const mainStepsAll = PARCOURS_MEKNES.steps.filter(s => !s.isBonus && Number.isInteger(s.order));
   const stepFromParam = searchParams.get("step");
-  const initialStep = (stepFromParam && mainStepsAll.find(s => s.id === stepFromParam)) ?? mainStepsAll[0];
+  const initialStep = mainStepsAll.find(s => s.id === stepFromParam) ?? mainStepsAll[0];
   const [activeStep, setActiveStep] = useState(initialStep);
 
   // Zones de géofencing construites depuis les données parcours
