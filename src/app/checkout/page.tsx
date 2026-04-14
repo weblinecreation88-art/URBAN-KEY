@@ -11,6 +11,8 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import { PARCOURS_MEKNES } from "@/data/parcours";
+import { db, auth } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -112,6 +114,23 @@ function CheckoutContent() {
 
   function applyPromo() {
     if (promoCode.toUpperCase() === "MEKNES10") setPromoApplied(true);
+  }
+
+  async function handlePaymentSuccess() {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        await setDoc(doc(db, "users", user.uid, "purchases", questId), {
+          questTitle: quest.title,
+          amount: total,
+          status: "active",
+          purchasedAt: serverTimestamp(),
+        });
+      } catch {
+        // L'achat est enregistré côté Stripe même si Firestore échoue
+      }
+    }
+    setStep("success");
   }
 
   if (step === "success") {
@@ -264,7 +283,7 @@ function CheckoutContent() {
           <>
             {clientSecret && stripePromise ? (
               <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "flat", variables: { colorPrimary: "#8c4b00", colorBackground: "#fff9ed", colorText: "#2c1a00", borderRadius: "12px" } } }}>
-                <PaymentForm onSuccess={() => setStep("success")} />
+                <PaymentForm onSuccess={handlePaymentSuccess} />
               </Elements>
             ) : (
               // Mode démo si Stripe non configuré
@@ -277,7 +296,7 @@ function CheckoutContent() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setStep("success")}
+                  onClick={handlePaymentSuccess}
                   className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-white tap-scale"
                 >
                   Simuler un paiement réussi

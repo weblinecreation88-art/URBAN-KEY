@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import Icon from "@/components/Icon";
 import GeofencePopup from "@/components/GeofencePopup";
@@ -29,15 +29,20 @@ const MAP_STYLES: google.maps.MapTypeStyle[] = [
   { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#d8c8a8" }] },
 ];
 
-export default function MapPage() {
+function MapContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const userMarkerRef = useRef<google.maps.Marker | null>(null);
   const [layersOpen, setLayersOpen] = useState(false);
   const [showPath, setShowPath] = useState(true);
   const [mapError, setMapError] = useState("");
-  const [activeStep, setActiveStep] = useState(PARCOURS_MEKNES.steps.filter(s => !s.isBonus && Number.isInteger(s.order))[0]);
+
+  const mainStepsAll = PARCOURS_MEKNES.steps.filter(s => !s.isBonus && Number.isInteger(s.order));
+  const stepFromParam = searchParams.get("step");
+  const initialStep = (stepFromParam && mainStepsAll.find(s => s.id === stepFromParam)) ?? mainStepsAll[0];
+  const [activeStep, setActiveStep] = useState(initialStep);
 
   // Zones de géofencing construites depuis les données parcours
   const geoZones = useMemo<GeoZone[]>(() =>
@@ -157,7 +162,7 @@ export default function MapPage() {
     mapInstanceRef.current.setZoom(17);
   }
 
-  const mainSteps = PARCOURS_MEKNES.steps.filter(s => !s.isBonus && Number.isInteger(s.order));
+  const mainSteps = mainStepsAll;
   const currentIndex = mainSteps.findIndex(s => s.id === activeStep.id);
   const progress = Math.round(((currentIndex + 1) / mainSteps.length) * 100);
 
@@ -302,5 +307,13 @@ export default function MapPage() {
 
       <BottomNav />
     </div>
+  );
+}
+
+export default function MapPage() {
+  return (
+    <Suspense fallback={<div className="h-dvh w-full bg-background" />}>
+      <MapContent />
+    </Suspense>
   );
 }
