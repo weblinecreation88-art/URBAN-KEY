@@ -299,15 +299,15 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
             </>
           )}
 
-          {/* Bouton Skip — apparaît après 2 mauvaises réponses */}
-          {wrongCount >= 2 && (
+          {/* Bouton Skip — après 2 mauvaises réponses OU tous les indices épuisés */}
+          {(wrongCount >= 2 || revealedHints.length >= staticHints.length + 1) && (
             <button
               onClick={handleSkip}
               className="mt-4 w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold tap-scale"
               style={{ background: "rgba(140,75,0,0.08)", color: "#8c4b00", border: "1px solid rgba(140,75,0,0.2)" }}
             >
               <Icon name="skip_next" size={15} />
-              Passer cette étape (−100% points)
+              Passer cette étape (0 point)
             </button>
           )}
         </section>
@@ -355,6 +355,11 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
 
           {revealedHints.length > 0 && (
             <p className="text-on-surface-variant/60 text-[10px] mt-2">Score actuel : {score} pts</p>
+          )}
+          {revealedHints.length > 0 && (
+            <p className="text-on-surface-variant/50 text-[10px] mt-1 italic">
+              Toujours bloqué ? Le bouton <strong>Passer</strong> apparaît sous la zone de réponse.
+            </p>
           )}
         </section>
 
