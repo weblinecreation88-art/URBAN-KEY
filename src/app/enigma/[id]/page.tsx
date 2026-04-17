@@ -344,7 +344,9 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
           </button>
           <div>
             <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Étape {step.order}/{totalSteps}</p>
-            <h1 className="font-headline font-bold text-primary text-base leading-tight">{step.title}</h1>
+            <h1 className="font-headline font-bold text-primary text-base leading-tight">
+              {success ? step.title : "Mystère à élucider…"}
+            </h1>
           </div>
         </div>
         <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-high" style={{ border: "1px solid rgba(140,122,90,0.2)" }}>
