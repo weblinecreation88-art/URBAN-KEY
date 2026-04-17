@@ -230,8 +230,11 @@ function MapContent() {
     }
   }, [userPos]);
 
-  // Polyline piéton vers l'étape active (debounce 30s)
-  const fetchWalkingRoute = useCallback(async (
+  // Polyline piéton vers l'étape active
+  // Affiche une ligne directionnelle pointillée bleue (ligne droite).
+  // Pour activer le trajet réel, activer "Routes API" dans Google Cloud Console
+  // sur la même clé que NEXT_PUBLIC_GOOGLE_MAPS_API_KEY.
+  const fetchWalkingRoute = useCallback((
     origin: { lat: number; lng: number },
     destination: { lat: number; lng: number }
   ) => {
@@ -239,47 +242,21 @@ function MapContent() {
     if (Date.now() - lastRouteRequestRef.current < 30000) return;
     lastRouteRequestRef.current = Date.now();
 
-    try {
-      await importLibrary("routes");
-      const svc = new google.maps.DirectionsService();
-      const result = await svc.route({
-        origin,
-        destination,
-        travelMode: google.maps.TravelMode.WALKING,
-      });
-      const path = result.routes[0]?.overview_path ?? [];
-      walkingPolylineRef.current?.setMap(null);
-      walkingPolylineRef.current = new google.maps.Polyline({
-        path,
-        geodesic: false,
-        strokeColor: "#2563eb",
-        strokeOpacity: 0.85,
-        strokeWeight: 4,
-        map: mapInstanceRef.current,
-        zIndex: 5,
-        icons: [{
-          icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 2, strokeColor: "#1d4ed8" },
-          offset: "50%",
-        }],
-      });
-    } catch {
-      // Fallback : ligne droite pointillée
-      walkingPolylineRef.current?.setMap(null);
-      walkingPolylineRef.current = new google.maps.Polyline({
-        path: [origin, destination],
-        geodesic: true,
-        strokeColor: "#2563eb",
-        strokeOpacity: 0.5,
-        strokeWeight: 3,
-        map: mapInstanceRef.current,
-        zIndex: 5,
-        icons: [{
-          icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
-          offset: "0",
-          repeat: "10px",
-        }],
-      });
-    }
+    walkingPolylineRef.current?.setMap(null);
+    walkingPolylineRef.current = new google.maps.Polyline({
+      path: [origin, destination],
+      geodesic: true,
+      strokeColor: "#2563eb",
+      strokeOpacity: 0.5,
+      strokeWeight: 3,
+      map: mapInstanceRef.current,
+      zIndex: 5,
+      icons: [{
+        icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
+        offset: "0",
+        repeat: "10px",
+      }],
+    });
   }, []);
 
   useEffect(() => {
