@@ -8,6 +8,8 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -17,6 +19,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -55,12 +58,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  async function loginWithGoogle() {
+    const provider = new GoogleAuthProvider();
+    const cred = await signInWithPopup(auth, provider);
+    const userRef = doc(db, "users", cred.user.uid);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()) {
+      const nameParts = (cred.user.displayName ?? "").split(" ");
+      const firstName = nameParts[0] ?? "";
+      const lastName = nameParts.slice(1).join(" ") ?? "";
+      await setDoc(userRef, {
+        uid: cred.user.uid,
+        email: cred.user.email,
+        firstName,
+        lastName,
+        displayName: cred.user.displayName ?? "",
+        avatarUrl: cred.user.photoURL ?? "",
+        xp: 0,
+        level: 1,
+        createdAt: serverTimestamp(),
+      });
+    }
+  }
+
   async function logout() {
     await signOut(auth);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );
