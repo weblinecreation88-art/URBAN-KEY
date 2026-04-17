@@ -230,11 +230,8 @@ function MapContent() {
     }
   }, [userPos]);
 
-  // Polyline piéton vers l'étape active
-  // Affiche une ligne directionnelle pointillée bleue (ligne droite).
-  // Pour activer le trajet réel, activer "Routes API" dans Google Cloud Console
-  // sur la même clé que NEXT_PUBLIC_GOOGLE_MAPS_API_KEY.
-  const fetchWalkingRoute = useCallback((
+  // Polyline piéton via Routes API v2, fallback ligne droite si indisponible
+  const fetchWalkingRoute = useCallback(async (
     origin: { lat: number; lng: number },
     destination: { lat: number; lng: number }
   ) => {
@@ -242,21 +239,64 @@ function MapContent() {
     if (Date.now() - lastRouteRequestRef.current < 30000) return;
     lastRouteRequestRef.current = Date.now();
 
-    walkingPolylineRef.current?.setMap(null);
-    walkingPolylineRef.current = new google.maps.Polyline({
-      path: [origin, destination],
-      geodesic: true,
-      strokeColor: "#2563eb",
-      strokeOpacity: 0.5,
-      strokeWeight: 3,
-      map: mapInstanceRef.current,
-      zIndex: 5,
-      icons: [{
-        icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
-        offset: "0",
-        repeat: "10px",
-      }],
-    });
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "AIzaSyDvm3X_xExGFimV8z7pkAXzYe7tVs8cv6o";
+
+    try {
+      const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask": "routes.polyline.encodedPolyline",
+        },
+        body: JSON.stringify({
+          origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
+          destination: { location: { latLng: { latitude: destination.lat, longitude: destination.lng } } },
+          travelMode: "WALK",
+        }),
+      });
+
+      if (!res.ok) throw new Error("routes_api_error");
+      const data = await res.json() as { routes?: Array<{ polyline?: { encodedPolyline?: string } }> };
+      const encoded = data.routes?.[0]?.polyline?.encodedPolyline;
+      if (!encoded) throw new Error("no_polyline");
+
+      const { encoding } = await importLibrary("geometry") as { encoding: { decodePath: (s: string) => google.maps.LatLng[] } };
+      const path = encoding.decodePath(encoded);
+
+      walkingPolylineRef.current?.setMap(null);
+      walkingPolylineRef.current = new google.maps.Polyline({
+        path,
+        geodesic: false,
+        strokeColor: "#2563eb",
+        strokeOpacity: 0.85,
+        strokeWeight: 4,
+        map: mapInstanceRef.current,
+        zIndex: 5,
+        icons: [{
+          icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 2, strokeColor: "#1d4ed8" },
+          offset: "50%",
+        }],
+      });
+    } catch {
+      // Fallback : ligne droite pointillée
+      walkingPolylineRef.current?.setMap(null);
+      if (!mapInstanceRef.current) return;
+      walkingPolylineRef.current = new google.maps.Polyline({
+        path: [origin, destination],
+        geodesic: true,
+        strokeColor: "#2563eb",
+        strokeOpacity: 0.5,
+        strokeWeight: 3,
+        map: mapInstanceRef.current,
+        zIndex: 5,
+        icons: [{
+          icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
+          offset: "0",
+          repeat: "10px",
+        }],
+      });
+    }
   }, []);
 
   useEffect(() => {
