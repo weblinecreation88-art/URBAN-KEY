@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UrbanKey — Changelog v1 → v2</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700;800&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #fff9ed;
+      color: #2c1a00;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @media print {
+      body { background: white; }
+      .no-print { display: none; }
+      .page-break { page-break-before: always; }
+      .section { break-inside: avoid; }
+    }
+
+    .cover {
+      background: linear-gradient(135deg, #0f1726 0%, #1a2a4a 50%, #0f1726 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 60px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cover::before {
+      content: '';
+      position: absolute;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(201,169,110,0.15) 0%, transparent 70%);
+      top: -100px; right: -100px;
+    }
+
+    .cover::after {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(162,207,206,0.1) 0%, transparent 70%);
+      bottom: -50px; left: -50px;
+    }
+
+    .cover-badge {
+      background: rgba(201,169,110,0.2);
+      border: 1px solid rgba(201,169,110,0.4);
+      color: #c9a96e;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 6px 18px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+    }
+
+    .cover h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 52px;
+      font-weight: 800;
+      color: #c9a96e;
+      letter-spacing: -2px;
+      margin-bottom: 8px;
+    }
+
+    .cover h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 40px;
+    }
+
+    .cover-meta {
+      display: flex;
+      gap: 40px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .cover-meta-item {
+      text-align: center;
+    }
+
+    .cover-meta-item .val {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 36px;
+      font-weight: 800;
+      color: #c9a96e;
+    }
+
+    .cover-meta-item .lbl {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .divider-cover {
+      width: 80px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #c9a96e, transparent);
+      margin: 32px auto;
+    }
+
+    .cover-desc {
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+      max-width: 560px;
+      line-height: 1.7;
+    }
+
+    .content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 48px 40px;
+    }
+
+    .toc {
+      background: white;
+      border: 1px solid rgba(140,122,90,0.2);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 48px;
+    }
+
+    .toc h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #8c4b00;
+      margin-bottom: 20px;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #5c3d1e;
+    }
+
+    .toc-num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: #8c4b00;
+      color: white;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .sprint-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 48px 0 24px;
+    }
+
+    .sprint-num {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #8c4b00, #c9a96e);
+      color: white;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .sprint-title {
+      flex: 1;
+    }
+
+    .sprint-title h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: #2c1a00;
+      margin-bottom: 2px;
+    }
+
+    .sprint-date {
+      font-size: 11px;
+      color: #9a7a50;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .sprint-divider {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(140,122,90,0.3), transparent);
+    }
+
+    .section {
+      background: white;
+      border: 1px solid rgba(140,122,90,0.15);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 12px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .tag-feat { background: rgba(22,163,74,0.12); color: #16a34a; }
+    .tag-fix  { background: rgba(239,68,68,0.12); color: #dc2626; }
+    .tag-perf { background: rgba(59,130,246,0.12); color: #2563eb; }
+    .tag-chore{ background: rgba(107,114,128,0.12); color: #6b7280; }
+    .tag-sprint{ background: rgba(140,75,0,0.12); color: #8c4b00; }
+
+    .section-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #2c1a00;
+      line-height: 1.4;
+    }
+
+    .commit-hash {
+      font-family: monospace;
+      font-size: 10px;
+      color: #9a7a50;
+      margin-top: 2px;
+    }
+
+    .section-desc {
+      font-size: 12px;
+      color: #5c3d1e;
+      line-height: 1.6;
+    }
+
+    .bullets {
+      list-style: none;
+      margin-top: 10px;
+      space-y: 4px;
+    }
+
+    .bullets li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      color: #5c3d1e;
+      margin-bottom: 5px;
+      line-height: 1.5;
+    }
+
+    .bullets li::before {
+      content: '→';
+      color: #c9a96e;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .files-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .file-chip {
+      background: rgba(140,75,0,0.07);
+      border: 1px solid rgba(140,75,0,0.15);
+      color: #8c4b00;
+      font-family: monospace;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 24px;
+      background: linear-gradient(135deg, #0f1726, #1a2a4a);
+      border-radius: 16px;
+      padding: 32px;
+      margin: 48px 0;
+      color: white;
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      flex: 1;
+      min-width: 100px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      color: #c9a96e;
+      display: block;
+    }
+
+    .stat-lbl {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+      display: block;
+    }
+
+    .print-btn {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      background: linear-gradient(135deg, #8c4b00, #c9a96e);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 100px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(140,75,0,0.35);
+      z-index: 999;
+    }
+
+    .print-btn:hover { opacity: 0.9; }
+
+    .footer {
+      text-align: center;
+      padding: 40px;
+      color: #9a7a50;
+      font-size: 11px;
+      border-top: 1px solid rgba(140,122,90,0.15);
+      margin-top: 48px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Page de couverture -->
+<div class="cover">
+  <div class="cover-badge">Release Notes</div>
+  <h1>UrbanKey</h1>
+  <h2>Changelog — v1 → v2.1</h2>
+  <div class="divider-cover"></div>
+  <p class="cover-desc">
+    Journal complet de toutes les livraisons depuis l'initialisation du projet jusqu'à la version 2 — incluant les sprints de développement, les correctifs et les améliorations post-lancement.
+  </p>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <div class="val">32</div>
+      <div class="lbl">Commits</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="val">13</div>
+      <div class="lbl">Sprints</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="val">38</div>
+      <div class="lbl">Jours</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="val">Next.js 16</div>
+      <div class="lbl">Stack</div>
+    </div>
+  </div>
+</div>
+
+<!-- Contenu -->
+<div class="content">
+
+  <!-- Table des matières -->
+  <div class="toc">
+    <h3>Table des matières</h3>
+    <div class="toc-grid">
+      <div class="toc-item"><div class="toc-num">1</div> Initialisation & Setup (11/03)</div>
+      <div class="toc-item"><div class="toc-num">2</div> MVP Screens — 13 routes (11/04)</div>
+      <div class="toc-item"><div class="toc-num">3</div> Thème Parchemin & Données réelles</div>
+      <div class="toc-item"><div class="toc-num">4</div> Sprint 3-4 : Paiements & Géofencing</div>
+      <div class="toc-item"><div class="toc-num">5</div> Sprint 4 : Admin CMS Back-office</div>
+      <div class="toc-item"><div class="toc-num">6</div> Sprint 5 : QR Check-in & Export PDF</div>
+      <div class="toc-item"><div class="toc-num">7</div> Sprint 6 : Quest Detail & End Page</div>
+      <div class="toc-item"><div class="toc-num">8</div> Post-sprint : Correctifs & UX</div>
+      <div class="toc-item"><div class="toc-num">9</div> Authentification Google</div>
+      <div class="toc-item"><div class="toc-num">10</div> Carte Maps — 7 améliorations</div>
+      <div class="toc-item"><div class="toc-num">11</div> Mini-carte intégrée Énigme</div>
+      <div class="toc-item"><div class="toc-num">12</div> Correctifs Hydration & Routes API</div>
+      <div class="toc-item"><div class="toc-num">13</div> Confettis · Skip · Vue Satellite</div>
+    </div>
+  </div>
+
+  <!-- Stats globales -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-val">Firebase</span>
+      <span class="stat-lbl">Infra & Auth</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-val">Stripe</span>
+      <span class="stat-lbl">Paiements</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-val">Gemini</span>
+      <span class="stat-lbl">IA Indices</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-val">Google Maps</span>
+      <span class="stat-lbl">Géofencing GPS</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-val">Cloudinary</span>
+      <span class="stat-lbl">Assets médias</span>
+    </div>
+  </div>
+
+  <!-- SPRINT 0 — Init -->
+  <div class="sprint-header">
+    <div class="sprint-num">0</div>
+    <div class="sprint-title">
+      <h2>Initialisation du projet</h2>
+      <div class="sprint-date">10–11 Mars 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-chore">INIT</span>
+      <div>
+        <div class="section-title">Création du repository & setup Next.js</div>
+        <div class="commit-hash">4881ab4 · 486a7af · 52189f9</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Initialisation Next.js 16 + Tailwind CSS v4 + TypeScript strict</li>
+      <li>Configuration Firebase App Hosting avec CI/CD automatique sur GitHub</li>
+      <li>Connexion repo <code>weblinecreation88-art/URBAN-KEY</code> → Firebase Hosting</li>
+      <li>Setup <code>firebase.json</code>, <code>firestore.rules</code>, <code>storage.rules</code></li>
+      <li>Résolution conflit README sur merge initial</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">firebase.json</span>
+      <span class="file-chip">next.config.ts</span>
+      <span class="file-chip">tailwind.config.ts</span>
+      <span class="file-chip">apphosting.yaml</span>
+    </div>
+  </div>
+
+  <!-- SPRINT 1 — MVP Screens -->
+  <div class="sprint-header">
+    <div class="sprint-num">1</div>
+    <div class="sprint-title">
+      <h2>MVP Screens — 13 routes</h2>
+      <div class="sprint-date">11 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">13 routes créées + fonctionnalités réelles câblées</div>
+        <div class="commit-hash">458e042 · 3cf8b4d · 23b00b6</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Routes : <code>/</code> (splash), <code>/onboarding</code>, <code>/discover</code>, <code>/login</code>, <code>/profile</code>, <code>/map</code>, <code>/enigma/[id]</code>, <code>/checkout</code>, <code>/end</code>, <code>/checkin</code>, <code>/leaderboard</code>, <code>/admin</code>, <code>/admin/parcours</code></li>
+      <li>Authentification Firebase (email/password) avec AuthContext et onAuthStateChanged</li>
+      <li>Firestore : création de document utilisateur à l'inscription (uid, email, xp, level)</li>
+      <li>Correction dépendances : déplacement tailwindcss + @tailwindcss/postcss vers <code>dependencies</code> pour le Cloud Build</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/app/login/page.tsx</span>
+      <span class="file-chip">src/context/AuthContext.tsx</span>
+      <span class="file-chip">src/lib/firebase.ts</span>
+    </div>
+  </div>
+
+  <!-- SPRINT 2 — Thème & Données -->
+  <div class="sprint-header">
+    <div class="sprint-num">2</div>
+    <div class="sprint-title">
+      <h2>Thème Parchemin & Données Meknès</h2>
+      <div class="sprint-date">11–12 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">Design system "Ancient Explorer" + données terrain réelles</div>
+        <div class="commit-hash">a674eff · 6970efd</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Application du thème parchement : fonds crème <code>#fff9ed</code>, accents ocre <code>#8c4b00</code>, teal <code>#296767</code></li>
+      <li>Polices : Noto Serif (titres) + Plus Jakarta Sans (UI)</li>
+      <li>Règle "No-Line" : suppression des bordures 1px, remplacées par des shifts de couleur</li>
+      <li>Glassmorphisme : opacité 60–80% + backdrop-blur sur les éléments flottants</li>
+      <li>Données terrain Meknès : 8 étapes principales + bonus (Bab Mansour, Lalla Aouda, Mausolée, Hri Souani, Sarij Souani, Prison Qara, Dar Lakbira, Place du Makhzen, Calèche)</li>
+      <li>Coordonnées GPS réelles, textes d'énigmes, réponses, indices statiques, descriptions longues</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/data/parcours.ts</span>
+      <span class="file-chip">tailwind.config.ts</span>
+      <span class="file-chip">src/app/globals.css</span>
+    </div>
+  </div>
+
+  <!-- SPRINT 3-4 — Stripe, Geofencing, Genkit -->
+  <div class="sprint-header">
+    <div class="sprint-num">3</div>
+    <div class="sprint-title">
+      <h2>Sprint 3-4 : Paiements · Géofencing · IA Indices</h2>
+      <div class="sprint-date">12 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-sprint">SPRINT</span>
+      <div>
+        <div class="section-title">Stripe checkout, hook géofencing GPS, hints Genkit/Gemini</div>
+        <div class="commit-hash">607703c</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li><strong>Stripe :</strong> intégration complète (PaymentIntent, 3-D Secure, confirmation webhook), Apple Pay / Google Pay via Stripe Elements</li>
+      <li><strong>Géofencing :</strong> hook <code>useGeofencing</code> avec watchPosition haute précision, formule Haversine, détection anti-spoof (accuracy &lt; 1m, speed &gt; 60 m/s)</li>
+      <li><strong>Genkit/Gemini :</strong> route API <code>/api/hint</code> — génération d'indices contextuels IA (-50 pts)</li>
+      <li><strong>GeofencePopup :</strong> composant slide-up à l'entrée de zone (type enigme/popup/photo/bonus)</li>
+      <li>Lazy-init Stripe et Genkit pour éviter les crashes au build Cloud</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/hooks/useGeofencing.ts</span>
+      <span class="file-chip">src/app/checkout/page.tsx</span>
+      <span class="file-chip">src/app/api/hint/route.ts</span>
+      <span class="file-chip">src/components/GeofencePopup.tsx</span>
+    </div>
+  </div>
+
+  <!-- SPRINT 4 — Admin -->
+  <div class="sprint-header">
+    <div class="sprint-num">4</div>
+    <div class="sprint-title">
+      <h2>Sprint 4 : Admin CMS Back-office</h2>
+      <div class="sprint-date">12 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-sprint">SPRINT</span>
+      <div>
+        <div class="section-title">Dashboard KPI + CRUD parcours complet</div>
+        <div class="commit-hash">e34e967</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Dashboard KPI : sessions/jour, revenus, NPS, taux complétion, top parcours</li>
+      <li>CRUD Parcours : liste filtrée, statuts draft/ready/published/archived, import JSON depuis code source</li>
+      <li>Gestion Villes, Utilisateurs (rôles admin/éditeur/opérateur), Codes promo</li>
+      <li>Générateur QR codes (jsPDF + html2canvas)</li>
+      <li>Sidebar responsive avec burger menu sur mobile</li>
+      <li>Historique des versions (timeline auteur + date)</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/app/admin/layout.tsx</span>
+      <span class="file-chip">src/app/admin/parcours/page.tsx</span>
+      <span class="file-chip">src/app/admin/dashboard/page.tsx</span>
+    </div>
+  </div>
+
+  <!-- SPRINT 5 — QR & PDF -->
+  <div class="sprint-header">
+    <div class="sprint-num">5</div>
+    <div class="sprint-title">
+      <h2>Sprint 5 : QR Check-in · Export PDF Corporate</h2>
+      <div class="sprint-date">12 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-sprint">SPRINT</span>
+      <div>
+        <div class="section-title">QR check-in OTA, générateur QR admin, export PDF débrief équipe</div>
+        <div class="commit-hash">afca7d5</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Page <code>/checkin</code> : validation tokens QR OTA (<code>uk-{questId}</code>), accès automatique pour utilisateurs connectés</li>
+      <li>Générateur de QR codes admin : export PNG/PDF pour impression terrain</li>
+      <li>Export PDF corporate : débrief équipe avec scores, badges, temps par étape (jsPDF)</li>
+      <li>Webhooks OTA : journal des appels entrants (Airbnb / GetYourGuide)</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/app/checkin/page.tsx</span>
+      <span class="file-chip">src/app/admin/qr/page.tsx</span>
+      <span class="file-chip">src/app/admin/export/page.tsx</span>
+    </div>
+  </div>
+
+  <!-- SPRINT 6 — Quest Detail & End -->
+  <div class="sprint-header">
+    <div class="sprint-num">6</div>
+    <div class="sprint-title">
+      <h2>Sprint 6 : Quest Detail · End Page · NPS</h2>
+      <div class="sprint-date">12 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-sprint">SPRINT</span>
+      <div>
+        <div class="section-title">Page détail parcours, écran fin + NPS, sauvegarde Firestore</div>
+        <div class="commit-hash">d47f57f · e87016e</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Page détail parcours : hero image, description, liste étapes, mini-carte statique Google Maps, CTA adaptatif (Acheter / Démarrer / Reprendre)</li>
+      <li>Intégration Cloudinary pour les assets images des parcours</li>
+      <li>Écran fin de parcours : score final, badges obtenus, temps total, indices utilisés</li>
+      <li>NPS slider 0–10 avec sauvegarde Firestore <code>users/{uid}/sessions</code></li>
+      <li>Mise à jour XP profil et statut achat "completed" en fin de jeu</li>
+      <li>Correction : lazy-init Stripe + Genkit pour stabiliser le build Firebase Cloud</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/app/quest/[id]/page.tsx</span>
+      <span class="file-chip">src/app/end/page.tsx</span>
+    </div>
+  </div>
+
+  <!-- POST-SPRINT — Correctifs & UX -->
+  <div class="sprint-header">
+    <div class="sprint-num">7</div>
+    <div class="sprint-title">
+      <h2>Post-sprint : Correctifs UX & Gameplay</h2>
+      <div class="sprint-date">12–14 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-fix">FIX</span>
+      <div>
+        <div class="section-title">5 correctifs gameplay + refonte onboarding</div>
+        <div class="commit-hash">09044b0 · 21c92a9</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>QCM : correction du handler qui ne bouclait pas correctement sur les choix</li>
+      <li>Bouton Skip : rendu visible après 2 mauvaises réponses OU tous indices épuisés</li>
+      <li>Indices : message tip "Toujours bloqué ? Le bouton Passer apparaît…" après révélation</li>
+      <li>Bouton "Voir plus" : bottom sheet avec description longue et vidéo YouTube embed</li>
+      <li>Navigation carte : lien <code>/map?step=</code> depuis l'énigme</li>
+      <li>Onboarding redesign : image plein écran, texte blanc, CTAs clarifiés</li>
+      <li>Correction TypeScript : <code>stepFromParam && find()</code> retournait type <code>'' | QuestStep</code></li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">Fuzzy matching sur les réponses (algorithme Levenshtein)</div>
+        <div class="commit-hash">cecb949</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Tolérance aux fautes de frappe : 1 erreur si réponse ≤ 6 caractères, 2 erreurs si &gt; 6</li>
+      <li>Normalisation : minuscules, suppression accents, caractères spéciaux, espaces multiples</li>
+      <li>Exemples : "Mohammed Vi" → "Mohammed VI" ✓ | "Cigone" → "Cigogne" ✓</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/app/enigma/[id]/page.tsx</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">Profil utilisateur complet + filtres découverte</div>
+        <div class="commit-hash">b936b35 · be617af</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Profil : avatar upload (Cloud Storage), préférences langue/TTS/contraste, historique achats, reset password</li>
+      <li>Page découverte : filtres chips Solo / Famille / Groupe / Corporate / PMR</li>
+      <li>Sync temps réel Firestore via <code>onSnapshot()</code></li>
+    </ul>
+  </div>
+
+  <!-- AUTHENTIFICATION GOOGLE -->
+  <div class="sprint-header">
+    <div class="sprint-num">8</div>
+    <div class="sprint-title">
+      <h2>Authentification Google (OAuth)</h2>
+      <div class="sprint-date">17 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">Connexion Google via Firebase popup + création profil Firestore</div>
+        <div class="commit-hash">9779fbe</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Ajout <code>GoogleAuthProvider</code> + <code>signInWithPopup</code> dans AuthContext</li>
+      <li>Création automatique du document Firestore si première connexion Google (firstName, lastName extraits du displayName)</li>
+      <li>Avatar Google synchronisé via <code>photoURL</code></li>
+      <li>Bouton "Continuer avec Google" avec logo G SVG officiel dans la page login</li>
+      <li>Gestion d'erreur : popup annulée ou indisponible</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/context/AuthContext.tsx</span>
+      <span class="file-chip">src/app/login/page.tsx</span>
+    </div>
+  </div>
+
+  <!-- 7 AMÉLIORATIONS CARTE -->
+  <div class="sprint-header">
+    <div class="sprint-num">9</div>
+    <div class="sprint-title">
+      <h2>Carte Maps — 7 améliorations</h2>
+      <div class="sprint-date">17 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">#1 — Anti-GPS spoof renforcé (3 niveaux progressifs)</div>
+        <div class="commit-hash">432cbf6</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Détection téléportation : saut &gt;300m en &lt;3s → spoof immédiat</li>
+      <li>Détection vitesse : &gt;10 m/s (36 km/h) sur 3 lectures consécutives</li>
+      <li>Niveau 1 : bannière orange "Position GPS suspecte détectée"</li>
+      <li>Niveau 2 : bannière orange foncé "Alerte GPS — comportement suspect répété"</li>
+      <li>Niveau 3 : bannière rouge "GPS falsifié — progression bloquée" + blocage déclenchement des zones</li>
+      <li>Historique glissant des 3 dernières positions avec timestamps</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">#2 — Fallback hors-ligne</div>
+        <div class="commit-hash">432cbf6</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Cache des étapes en localStorage au premier chargement (id, coords, titre, lieu)</li>
+      <li>Écoute des événements <code>online</code> / <code>offline</code> du navigateur</li>
+      <li>Bannière grise "Mode hors-ligne — carte en cache" si réseau coupé</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">#3 — Géofencing adaptatif + vibration haptique</div>
+        <div class="commit-hash">432cbf6</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Rayon calculé dynamiquement : <code>max(20, min(50, accuracy × 1.5))</code> mètres</li>
+      <li>Zones bonus : plafond à 60m au lieu de 50m</li>
+      <li>Vibration à l'entrée de zone : <code>navigator.vibrate([100, 50, 100])</code></li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">#4 — Clustering de markers (@googlemaps/markerclusterer)</div>
+        <div class="commit-hash">432cbf6</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Regroupement automatique des markers au zoom &lt; 15</li>
+      <li>Markers individuels visibles au zoom ≥ 15 (comportement par défaut à l'ouverture)</li>
+      <li>Renderer personnalisé : style parchement (<code>#9a7a50</code>, cercle, compteur blanc)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">#5 — Mode Été ☀️ (ombre + couleur parcours)</div>
+        <div class="commit-hash">432cbf6</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Toggle dans le panneau couches "Mode été"</li>
+      <li>Champ <code>shadedFrom?: string</code> ajouté à chaque étape (<code>"HH:MM"</code>)</li>
+      <li>Liste étapes triée par heure d'ombre croissante (Hri Souani 9h → Sarij Souani 15h30)</li>
+      <li>Polyline parcours passe en bleu <code>#2563eb</code> en mode été vs ocre <code>#8c4b00</code> normal</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">#6 — ETA dynamique à pied</div>
+        <div class="commit-hash">432cbf6</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Calcul : <code>ceil(distance / 80)</code> minutes (vitesse piéton 80 m/min)</li>
+      <li>Affiché dans le bottom sheet sous le nom du lieu : "~X min à pied" / "&lt; 1 min"</li>
+      <li>Mis à jour à chaque changement de position GPS (réactif via useMemo)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">#7 — Polyline piéton (Routes API v2)</div>
+        <div class="commit-hash">432cbf6 · 9f63f17</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Appel <code>routes.googleapis.com/directions/v2:computeRoutes</code> (POST, mode WALK)</li>
+      <li>Décodage polyline via <code>google.maps.geometry.encoding.decodePath()</code></li>
+      <li>Ligne bleue continue avec flèche directionnelle à 50%</li>
+      <li>Debounce : 1 requête max toutes les 30 secondes</li>
+      <li>Fallback automatique : ligne droite pointillée si Routes API indisponible</li>
+      <li>Activation Routes API requise dans Google Cloud Console (projet URBAN-KEY2)</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/hooks/useGeofencing.ts</span>
+      <span class="file-chip">src/app/map/page.tsx</span>
+      <span class="file-chip">src/data/parcours.ts</span>
+    </div>
+  </div>
+
+  <!-- MINI-CARTE ENIGME -->
+  <div class="sprint-header">
+    <div class="sprint-num">10</div>
+    <div class="sprint-title">
+      <h2>Mini-carte intégrée dans l'Énigme</h2>
+      <div class="sprint-date">17 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">Onglets Énigme | Carte dans la page /enigma/[id]</div>
+        <div class="commit-hash">1935697</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Toggle tabs sous la barre de progression : "Énigme" et "Carte"</li>
+      <li>Timer et score conservés lors du switch entre onglets</li>
+      <li>Carte thème parchement (même MAP_STYLES que /map) initialisée au premier switch</li>
+      <li>Marker étape avec numéro + cercle de zone ~20m (visuel de la zone de validation)</li>
+      <li>Position GPS utilisateur en temps réel via <code>watchPosition</code></li>
+      <li>Bouton recentrer sur l'étape active</li>
+      <li>Badge lieu + indication "Zone ~20m" en overlay bas de carte</li>
+      <li>Onglet carte = plein écran restant (flex layout, plus de scroll artificiel)</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/app/enigma/[id]/page.tsx</span>
+    </div>
+  </div>
+
+  <!-- CORRECTIFS -->
+  <div class="sprint-header">
+    <div class="sprint-num">11</div>
+    <div class="sprint-title">
+      <h2>Correctifs techniques</h2>
+      <div class="sprint-date">17 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-fix">FIX</span>
+      <div>
+        <div class="section-title">Hydration mismatch sur isOnline (SSR vs client)</div>
+        <div class="commit-hash">fddf0b9</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Cause : initialisation <code>useState(navigator.onLine)</code> évaluée différemment côté serveur (undefined) et client</li>
+      <li>Fix : initialisation forcée à <code>true</code>, synchronisation avec <code>navigator.onLine</code> dans un <code>useEffect</code> post-mount</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-fix">FIX</span>
+      <div>
+        <div class="section-title">Directions API legacy refusée (LegacyApiNotActivatedMapError)</div>
+        <div class="commit-hash">04665a3 → 9f63f17</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Erreur : <code>DirectionsService</code> est une API legacy non activée sur le projet</li>
+      <li>Solution intermédiaire : fallback ligne droite en attendant activation</li>
+      <li>Résolution finale : migration vers Routes API v2 (<code>routes.googleapis.com</code>) après activation dans Google Cloud Console</li>
+    </ul>
+  </div>
+
+  <!-- SPRINT 12 — 3 améliorations UX -->
+  <div class="sprint-header">
+    <div class="sprint-num">12</div>
+    <div class="sprint-title">
+      <h2>Améliorations UX — Confettis · Skip · Satellite</h2>
+      <div class="sprint-date">17 Avril 2026</div>
+    </div>
+    <div class="sprint-divider"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">Confettis animés sur bonne réponse</div>
+        <div class="commit-hash">df96367</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>70 pièces animées aux couleurs du design (or <code>#c9a96e</code>, ocre <code>#8c4b00</code>, teal <code>#296767</code>, crème <code>#e8d5b0</code>)</li>
+      <li>Animation CSS pure via <code>@keyframes confettiFall</code> — aucun package externe</li>
+      <li>Chute pendant 3,5 secondes avec rotation 720° et fondu final</li>
+      <li>Valeurs déterministes (pas de <code>Math.random()</code>) pour éviter tout hydration mismatch SSR</li>
+      <li>S'affiche en overlay <code>z-50</code> sur l'écran succès, non-interactif (<code>pointer-events: none</code>)</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/app/enigma/[id]/page.tsx</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">Affichage de la réponse correcte avant de passer une étape</div>
+        <div class="commit-hash">df96367</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Clic sur "Passer cette étape" ouvre une modale slide-up au lieu de skiper immédiatement</li>
+      <li>La réponse correcte s'affiche en grand (font-headline, couleur primaire)</li>
+      <li>Bouton "J'ai compris — passer (0 pt)" confirme le skip et déclenche l'écran succès</li>
+      <li>Si l'étape n'a pas de réponse textuelle (type photo/collecte) : skip immédiat inchangé</li>
+      <li>Message pédagogique : "Tu te souviens pour la prochaine fois ?"</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/app/enigma/[id]/page.tsx</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="tag tag-feat">FEAT</span>
+      <div>
+        <div class="section-title">Vue satellite dans la carte Maps</div>
+        <div class="commit-hash">df96367</div>
+      </div>
+    </div>
+    <ul class="bullets">
+      <li>Toggle "Vue satellite" dans le panneau couches (icône <code>satellite_alt</code>)</li>
+      <li>Mode <code>hybrid</code> Google Maps : imagerie satellite + labels de rues superposés</li>
+      <li>Suppression des styles parchemin personnalisés en mode satellite (<code>styles: []</code>)</li>
+      <li>Retour au thème parchement complet (<code>MAP_STYLES</code>) en désactivant le toggle</li>
+      <li>Changement dynamique via <code>setMapTypeId</code> + <code>setOptions</code> sans rechargement de la carte</li>
+    </ul>
+    <div class="files-list">
+      <span class="file-chip">src/app/map/page.tsx</span>
+    </div>
+  </div>
+
+  <!-- Récap final -->
+  <div style="margin: 48px 0;">
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-val">31</span>
+        <span class="stat-lbl">Commits total</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-val">15+</span>
+        <span class="stat-lbl">Routes Next.js</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-val">8</span>
+        <span class="stat-lbl">Étapes Meknès</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-val">99.5%</span>
+        <span class="stat-lbl">Crash-free cible</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <strong>UrbanKey</strong> — Application d'escape game urbain · Parcours pilote Meknès<br />
+    Généré le 17 avril 2026 · Commit HEAD : <code>df96367</code> · Repo : weblinecreation88-art/URBAN-KEY
+  </div>
+
+</div>
+
+<button class="print-btn no-print" onclick="window.print()">
+  ⬇ Imprimer / Sauvegarder en PDF
+</button>
+
+</body>
+</html>
