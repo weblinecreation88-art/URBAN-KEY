@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo, Suspense } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import Icon from "@/components/Icon";
 import GeofencePopup from "@/components/GeofencePopup";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
-import { useGeofencing, type GeoZone } from "@/hooks/useGeofencing";
+import { useGeofencing, haversine, type GeoZone } from "@/hooks/useGeofencing";
 import { PARCOURS_MEKNES } from "@/data/parcours";
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
 
 const MEKNES_CENTER = { lat: 33.8920, lng: -5.5540 };
 
-// Couleurs carte thème parchemin/sépia
 const MAP_STYLES: google.maps.MapTypeStyle[] = [
   { elementType: "geometry", stylers: [{ color: "#c8b99a" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#5c3d1e" }] },
@@ -35,33 +35,65 @@ function MapContent() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const userMarkerRef = useRef<google.maps.Marker | null>(null);
+  const polylineRef = useRef<google.maps.Polyline | null>(null);
+  const clustererRef = useRef<MarkerClusterer | null>(null);
+  const walkingPolylineRef = useRef<google.maps.Polyline | null>(null);
+  const lastRouteRequestRef = useRef<number>(0);
+
   const [layersOpen, setLayersOpen] = useState(false);
   const [showPath, setShowPath] = useState(true);
+  const [summerMode, setSummerMode] = useState(false);
   const [mapError, setMapError] = useState("");
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
 
   const mainStepsAll = PARCOURS_MEKNES.steps.filter(s => !s.isBonus && Number.isInteger(s.order));
   const stepFromParam = searchParams.get("step");
   const initialStep = mainStepsAll.find(s => s.id === stepFromParam) ?? mainStepsAll[0];
   const [activeStep, setActiveStep] = useState(initialStep);
 
-  // Zones de géofencing construites depuis les données parcours
   const geoZones = useMemo<GeoZone[]>(() =>
     PARCOURS_MEKNES.steps.map((s) => ({
       id: s.id,
       lat: s.coords.lat,
       lng: s.coords.lng,
-      radiusMeters: s.isBonus ? 30 : 20, // bonus = rayon plus large
+      radiusMeters: s.isBonus ? 30 : 20,
       label: s.title,
       message: s.enigme.slice(0, 120) + (s.enigme.length > 120 ? "…" : ""),
       type: s.type === "photo" ? "photo" : s.isBonus ? "bonus" : "enigme",
     })),
   []);
 
-  const { userPos, activeEvent, dismissEvent, spoofDetected } = useGeofencing(geoZones);
+  const { userPos, activeEvent, dismissEvent, spoofDetected, spoofLevel } = useGeofencing(geoZones);
+
+  // Cache parcours en localStorage pour le mode offline
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "urbankey_parcours_cache",
+        JSON.stringify(PARCOURS_MEKNES.steps.map(s => ({
+          id: s.id, title: s.title, lieu: s.lieu,
+          coords: s.coords, isBonus: s.isBonus, order: s.order, type: s.type,
+        })))
+      );
+    } catch { /* quota exceeded */ }
+  }, []);
+
+  // Écoute online/offline
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   // Init Google Maps
   useEffect(() => {
-    // NEXT_PUBLIC_ vars are inlined at build time — fallback ensures production works
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "AIzaSyDvm3X_xExGFimV8z7pkAXzYe7tVs8cv6o";
     if (!apiKey) { setMapError("Clé API Google Maps manquante."); return; }
 
@@ -78,7 +110,8 @@ function MapContent() {
       });
       mapInstanceRef.current = map;
 
-      // Marqueurs étapes
+      // Markers étapes — collectés pour le clustering
+      const stepMarkers: google.maps.Marker[] = [];
       PARCOURS_MEKNES.steps.filter(s => !s.isBonus).forEach((step) => {
         const isActive = step.id === activeStep.id;
         const color = isActive ? "#8c4b00" : "#9a7a50";
@@ -109,30 +142,73 @@ function MapContent() {
           setActiveStep(step);
           infoWindow.open(map, marker);
         });
+
+        stepMarkers.push(marker);
       });
 
-      // Tracé parcours
-      if (showPath) {
-        const mainSteps = PARCOURS_MEKNES.steps.filter(s => !s.isBonus && Number.isInteger(s.order));
-        new google.maps.Polyline({
-          path: mainSteps.map((s) => ({ lat: s.coords.lat, lng: s.coords.lng })),
-          geodesic: true,
-          strokeColor: "#8c4b00",
-          strokeOpacity: 0.5,
-          strokeWeight: 2,
-          icons: [{
-            icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
-            offset: "0",
-            repeat: "14px",
-          }],
-          map,
-        });
-      }
+      // Clustering (actif uniquement en dessous de zoom 15)
+      clustererRef.current = new MarkerClusterer({
+        map,
+        markers: stepMarkers,
+        algorithmOptions: { maxZoom: 14 },
+        renderer: {
+          render({ count, position }) {
+            return new google.maps.Marker({
+              position,
+              label: { text: String(count), color: "#fff9ed", fontWeight: "bold", fontSize: "11px" },
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 18,
+                fillColor: "#9a7a50",
+                fillOpacity: 0.9,
+                strokeColor: "#fff9ed",
+                strokeWeight: 2,
+              },
+              zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count,
+            });
+          },
+        },
+      });
+
+      // Tracé parcours (stocké en ref pour mise à jour couleur mode été)
+      const mainSteps = PARCOURS_MEKNES.steps.filter(s => !s.isBonus && Number.isInteger(s.order));
+      polylineRef.current = new google.maps.Polyline({
+        path: mainSteps.map((s) => ({ lat: s.coords.lat, lng: s.coords.lng })),
+        geodesic: true,
+        strokeColor: "#8c4b00",
+        strokeOpacity: 0.5,
+        strokeWeight: 2,
+        icons: [{
+          icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
+          offset: "0",
+          repeat: "14px",
+        }],
+        map: showPath ? map : null,
+      });
+
+      return () => {
+        clustererRef.current?.clearMarkers();
+      };
     }).catch((e: unknown) => { console.error(e); setMapError("Impossible de charger Google Maps."); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Mise à jour marqueur utilisateur depuis le hook géofencing
+  // Mode été — changement de couleur de la polyline parcours
+  useEffect(() => {
+    if (!polylineRef.current) return;
+    polylineRef.current.setOptions({
+      strokeColor: summerMode ? "#2563eb" : "#8c4b00",
+      strokeOpacity: summerMode ? 0.7 : 0.5,
+    });
+  }, [summerMode]);
+
+  // Mise à jour visibilité polyline
+  useEffect(() => {
+    if (!polylineRef.current || !mapInstanceRef.current) return;
+    polylineRef.current.setMap(showPath ? mapInstanceRef.current : null);
+  }, [showPath]);
+
+  // Mise à jour marqueur utilisateur
   useEffect(() => {
     if (!userPos || !mapInstanceRef.current) return;
     if (!userMarkerRef.current) {
@@ -155,6 +231,64 @@ function MapContent() {
     }
   }, [userPos]);
 
+  // Polyline piéton vers l'étape active (debounce 30s)
+  const fetchWalkingRoute = useCallback(async (
+    origin: { lat: number; lng: number },
+    destination: { lat: number; lng: number }
+  ) => {
+    if (!mapInstanceRef.current) return;
+    if (Date.now() - lastRouteRequestRef.current < 30000) return;
+    lastRouteRequestRef.current = Date.now();
+
+    try {
+      await importLibrary("routes");
+      const svc = new google.maps.DirectionsService();
+      const result = await svc.route({
+        origin,
+        destination,
+        travelMode: google.maps.TravelMode.WALKING,
+      });
+      const path = result.routes[0]?.overview_path ?? [];
+      walkingPolylineRef.current?.setMap(null);
+      walkingPolylineRef.current = new google.maps.Polyline({
+        path,
+        geodesic: false,
+        strokeColor: "#2563eb",
+        strokeOpacity: 0.85,
+        strokeWeight: 4,
+        map: mapInstanceRef.current,
+        zIndex: 5,
+        icons: [{
+          icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 2, strokeColor: "#1d4ed8" },
+          offset: "50%",
+        }],
+      });
+    } catch {
+      // Fallback : ligne droite pointillée
+      walkingPolylineRef.current?.setMap(null);
+      walkingPolylineRef.current = new google.maps.Polyline({
+        path: [origin, destination],
+        geodesic: true,
+        strokeColor: "#2563eb",
+        strokeOpacity: 0.5,
+        strokeWeight: 3,
+        map: mapInstanceRef.current,
+        zIndex: 5,
+        icons: [{
+          icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
+          offset: "0",
+          repeat: "10px",
+        }],
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!userPos || !mapInstanceRef.current) return;
+    fetchWalkingRoute(userPos, { lat: activeStep.coords.lat, lng: activeStep.coords.lng });
+    return () => { walkingPolylineRef.current?.setMap(null); };
+  }, [userPos, activeStep, fetchWalkingRoute]);
+
   function recenter() {
     if (!mapInstanceRef.current) return;
     const target = userPos ?? MEKNES_CENTER;
@@ -165,6 +299,26 @@ function MapContent() {
   const mainSteps = mainStepsAll;
   const currentIndex = mainSteps.findIndex(s => s.id === activeStep.id);
   const progress = Math.round(((currentIndex + 1) / mainSteps.length) * 100);
+
+  // ETA dynamique vers l'étape active
+  const etaMinutes = useMemo(() => {
+    if (!userPos) return null;
+    const dist = haversine(userPos.lat, userPos.lng, activeStep.coords.lat, activeStep.coords.lng);
+    return Math.ceil(dist / 80);
+  }, [userPos, activeStep]);
+
+  // Liste étapes triée par ombre en mode été (panneau couches uniquement)
+  const displaySteps = useMemo(() => {
+    if (!summerMode) return mainSteps;
+    return [...mainSteps].sort((a, b) => {
+      const toMin = (t?: string) => {
+        if (!t) return 999;
+        const [h, m] = t.split(":").map(Number);
+        return h * 60 + m;
+      };
+      return toMin(a.shadedFrom) - toMin(b.shadedFrom);
+    });
+  }, [mainSteps, summerMode]);
 
   return (
     <div className="h-dvh w-full bg-background relative overflow-hidden">
@@ -182,13 +336,33 @@ function MapContent() {
         </div>
       )}
 
-      {/* Anti-spoof banner */}
+      {/* Bannière anti-spoof (3 niveaux) */}
       {spoofDetected && (
         <div className="absolute top-28 left-4 right-4 z-30 px-4 py-2 rounded-xl flex items-center gap-2"
-          style={{ background: "rgba(186,26,26,0.9)", backdropFilter: "blur(8px)" }}
+          style={{
+            background: spoofLevel === 3 ? "rgba(186,26,26,0.95)" : "rgba(186,100,26,0.9)",
+            backdropFilter: "blur(8px)"
+          }}
         >
           <Icon name="gps_off" className="text-white" size={16} />
-          <span className="text-white text-xs font-bold">Position GPS suspecte détectée</span>
+          <span className="text-white text-xs font-bold">
+            {spoofLevel === 3
+              ? "GPS falsifié — progression bloquée"
+              : spoofLevel === 2
+                ? "Alerte GPS — comportement suspect répété"
+                : "Position GPS suspecte détectée"}
+          </span>
+        </div>
+      )}
+
+      {/* Bannière hors-ligne */}
+      {!isOnline && (
+        <div
+          className={`absolute left-4 right-4 z-20 px-4 py-2 rounded-xl flex items-center gap-2 ${spoofDetected ? "top-40" : "top-28"}`}
+          style={{ background: "rgba(60,60,60,0.88)", backdropFilter: "blur(8px)" }}
+        >
+          <Icon name="wifi_off" className="text-white" size={16} />
+          <span className="text-white text-xs font-bold">Mode hors-ligne — carte en cache</span>
         </div>
       )}
 
@@ -222,10 +396,12 @@ function MapContent() {
 
       {/* Layers panel */}
       {layersOpen && (
-        <div className="absolute top-28 right-4 z-20 w-52 rounded-2xl p-4 space-y-3"
+        <div className="absolute top-28 right-4 z-20 w-56 rounded-2xl p-4 space-y-3"
           style={{ background: "rgba(255,249,237,0.97)", backdropFilter: "blur(20px)", border: "1px solid rgba(140,122,90,0.25)", boxShadow: "0 4px 24px rgba(44,26,0,0.15)" }}
         >
           <p className="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mb-2">Couches</p>
+
+          {/* Toggle tracé */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Icon name="route" className="text-primary" size={16} />
@@ -236,18 +412,38 @@ function MapContent() {
               <span className="slider" />
             </label>
           </div>
+
+          {/* Toggle mode été */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Icon name="wb_sunny" size={16} className="text-amber-600" />
+              <span className="text-on-surface text-xs font-medium">Mode été</span>
+            </div>
+            <label className="toggle-switch scale-75">
+              <input type="checkbox" checked={summerMode} onChange={() => setSummerMode(!summerMode)} />
+              <span className="slider" />
+            </label>
+          </div>
+
           <div className="pt-2 mt-2" style={{ borderTop: "1px solid rgba(140,122,90,0.2)" }}>
-            <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest mb-2">Étapes</p>
-            {mainSteps.map((s, i) => (
+            <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest mb-2">
+              {summerMode ? "Étapes (ordre ombre ☀️)" : "Étapes"}
+            </p>
+            {displaySteps.map((s, i) => (
               <div key={s.id} className="flex items-center gap-2 py-1">
                 <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black text-white"
                   style={{ background: s.id === activeStep.id ? "#8c4b00" : "#cdbf9e" }}
                 >
-                  {i + 1}
+                  {summerMode ? (i + 1) : Math.floor(s.order)}
                 </div>
-                <span className={`text-xs ${s.id === activeStep.id ? "text-primary font-bold" : "text-on-surface-variant"}`}>
-                  {s.title}
-                </span>
+                <div className="flex-1 min-w-0">
+                  <span className={`text-xs block truncate ${s.id === activeStep.id ? "text-primary font-bold" : "text-on-surface-variant"}`}>
+                    {s.title}
+                  </span>
+                  {summerMode && s.shadedFrom && (
+                    <span className="text-[9px] text-amber-600">ombre dès {s.shadedFrom}</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -273,6 +469,14 @@ function MapContent() {
             <p className="text-[10px] uppercase font-bold tracking-widest text-secondary mb-0.5">Étape active</p>
             <h3 className="font-headline font-bold text-on-surface text-base leading-tight">{activeStep.title}</h3>
             <p className="text-on-surface-variant text-[11px] mt-0.5">{activeStep.lieu}</p>
+            {etaMinutes !== null && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <Icon name="directions_walk" className="text-secondary" size={13} />
+                <span className="text-secondary text-[11px] font-bold">
+                  {etaMinutes <= 1 ? "< 1 min" : `~${etaMinutes} min à pied`}
+                </span>
+              </div>
+            )}
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
             {currentIndex + 1} / {mainSteps.length}

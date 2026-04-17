@@ -22,6 +22,7 @@ export interface QuestStep {
   indices?: string[];           // Indices statiques pré-écrits (révélés un par un)
   descriptionLongue?: string;   // Texte complet du monument (bouton "Voir plus")
   videoUrl?: string;            // URL YouTube embed optionnelle
+  shadedFrom?: string;          // "HH:MM" — début de la période ombragée à cet endroit
 }
 
 export interface Quest {
@@ -64,6 +65,7 @@ export const PARCOURS_MEKNES: Quest = {
         "Je suis une porte monumentale, l'une des plus belles du Maroc. Mon nom vient de l'artisan qui m'a construite.",
         "Mon constructeur s'appelait Mansour Laleej — un esclave chrétien devenu musulman. Son surnom « le Victorieux Renégat » est la clé.",
       ],
+      shadedFrom: "12:00",
       descriptionLongue:
         "Bab Mansour est la porte la plus majestueuse de Meknès et l'une des plus imposantes du Maroc. Construite au début du XVIIIe siècle sous le règne de Moulay Ismaïl, elle fut achevée par son fils Moulay Abdellah en 1732. Son nom rend hommage à Mansour Laleej, un esclave chrétien converti à l'islam qui supervisa sa construction. La porte est ornée de mosaïques de zellige, de colonnes corinthiennes récupérées sur le site antique de Volubilis et d'inscriptions coraniques. Elle marque l'entrée principale de la ville impériale.",
     },
@@ -85,6 +87,7 @@ export const PARCOURS_MEKNES: Quest = {
         "Je suis une place publique nommée en l'honneur d'une femme proche du Sultan Moulay Ismaïl.",
         "Mon nom signifie « la Noble Dame » en arabe. Elle était l'une des épouses préférées du Sultan.",
       ],
+      shadedFrom: "14:00",
       descriptionLongue:
         "La Place Lalla Aouda est l'une des grandes places de la médina de Meknès. Elle tire son nom de Lalla Aouda, une épouse du Sultan Moulay Ismaïl particulièrement vénérée. Le méchouar — l'esplanade où se déroulaient les cérémonies officielles et les défilés de la garde noire — s'étendait autrefois jusqu'à cette place. Aujourd'hui lieu de vie et de promenade, elle reste le cœur historique de la ville impériale.",
     },
@@ -107,6 +110,7 @@ export const PARCOURS_MEKNES: Quest = {
         "La dynastie Alaouite règne sur le Maroc depuis le XVIIe siècle et continue de nos jours.",
         "Le roi actuel du Maroc porte un prénom arabe très répandu, suivi du chiffre romain « VI ».",
       ],
+      shadedFrom: "10:30",
       descriptionLongue:
         "Le Mausolée Moulay Ismaïl est l'un des rares sites sacrés du Maroc ouvert aux non-musulmans. Moulay Ismaïl (1645–1727) fut le sultan le plus puissant de la dynastie Alaouite. Il fit de Meknès sa capitale impériale et y bâtit une ville grandiose rivalisant avec Versailles. Son mausolée, richement décoré de zellige, de stucs et de bois sculpté, abrite son tombeau ainsi que ceux de deux de ses épouses. Le roi actuel du Maroc, Mohammed VI, est son descendant direct à la 12e génération.",
     },
@@ -124,6 +128,7 @@ export const PARCOURS_MEKNES: Quest = {
       type: "enigme",
       isBonus: true,
       scoreBase: 50,
+      shadedFrom: "11:00",
       indices: [
         "Je suis un oiseau migrateur emblématique du Maroc, souvent perché sur les minarets et les remparts.",
         "Mon cri ressemble à un claquement de bec : « Laklak, laklak… »",
@@ -162,6 +167,7 @@ export const PARCOURS_MEKNES: Quest = {
         "Ma superficie est impressionnante — on parle de plusieurs hectares pour stocker les provisions de toute une armée.",
         "Les panneaux informatifs à l'entrée indiquent ma superficie exacte. Regarde autour de toi !",
       ],
+      shadedFrom: "09:00",
       descriptionLongue:
         "Les Hri Souani sont les immenses greniers et écuries royaux construits par Moulay Ismaïl pour approvisionner son armée de 150 000 hommes et ses 12 000 chevaux. Ces vastes salles voûtées s'étendent sur plus de 4 hectares et constituent l'un des plus grands complexes de stockage de l'époque. Le système de ventilation et d'irrigation souterrain permettait de maintenir une température fraîche été comme hiver. Aujourd'hui, une partie des greniers est restaurée et accessible aux visiteurs.",
     },
@@ -183,6 +189,7 @@ export const PARCOURS_MEKNES: Quest = {
         "Je suis un bassin artificiel construit pour irriguer les jardins royaux et alimenter les greniers en eau.",
         "Les panneaux sur place indiquent mes dimensions. Cherche les informations autour du bassin !",
       ],
+      shadedFrom: "15:30",
       descriptionLongue:
         "Le Sarij Souani est un immense bassin de rétention d'eau construit par Moulay Ismaïl pour irriguer ses jardins royaux et alimenter les écuries et greniers en eau. Avec ses dimensions impressionnantes (environ 400m × 200m), il était alimenté par un aqueduc venant des collines environnantes. Aujourd'hui partiellement asséché, il offre une vue panoramique sur les remparts et les greniers voisins. Des barques de promenade permettent de le traverser en saison.",
     },
@@ -219,6 +226,7 @@ export const PARCOURS_MEKNES: Quest = {
         "Je suis un réseau souterrain construit par Moulay Ismaïl pour relier les différentes parties de sa ville impériale.",
         "Les guides locaux parlent de dizaines de kilomètres de galeries. La réponse est affichée à l'entrée du pavillon.",
       ],
+      shadedFrom: "10:00",
       descriptionLongue:
         "La Prison de Qara est un vaste réseau de souterrains et de cachots creusés sous la ville impériale de Moulay Ismaïl. Elle pouvait accueillir des milliers de prisonniers chrétiens qui travaillaient à la construction de la ville. Les galeries souterraines s'étendent sur plusieurs dizaines de kilomètres sous Meknès, reliant les différents quartiers impériaux. Le Pavillon des Ambassadeurs, juste au-dessus, servait à recevoir les délégations étrangères venues négocier la libération des captifs.",
     },
@@ -236,6 +244,7 @@ export const PARCOURS_MEKNES: Quest = {
       type: "collecte",
       isBonus: false,
       scoreBase: 0,
+      shadedFrom: "12:00",
     },
   ],
 };

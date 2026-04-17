@@ -11,6 +11,7 @@
   "dependencies": {
     "@genkit-ai/googleai": "^1.28.0",
     "@googlemaps/js-api-loader": "^2.0.2",
+    "@googlemaps/markerclusterer": "^2.6.2",
     "@stripe/react-stripe-js": "^6.1.0",
     "@stripe/stripe-js": "^9.1.0",
     "@tailwindcss/postcss": "^4",
