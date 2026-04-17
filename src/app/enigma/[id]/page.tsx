@@ -1,10 +1,53 @@
 "use client";
 
-import { useState, useEffect, useRef, use } from "react";
+import { useState, useEffect, useRef, useMemo, use } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { PARCOURS_MEKNES } from "@/data/parcours";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
+
+// Confettis — valeurs déterministes pour éviter toute erreur SSR
+const CONFETTI_PIECES = Array.from({ length: 70 }, (_, i) => ({
+  id: i,
+  color: ["#c9a96e", "#8c4b00", "#296767", "#f0be72", "#a2cfce", "#e8d5b0", "#d4a96a"][i % 7],
+  left: (i * 1.43) % 100,
+  delay: (i * 0.012) % 0.9,
+  duration: 1.4 + (i % 6) * 0.18,
+  size: 6 + (i % 5) * 2,
+  isCircle: i % 3 === 0,
+  rotate: (i * 47) % 360,
+}));
+
+function Confetti({ active }: { active: boolean }) {
+  if (!active) return null;
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+      <style>{`
+        @keyframes confettiFall {
+          0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
+          80%  { opacity: 1; }
+          100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+        }
+      `}</style>
+      {CONFETTI_PIECES.map((p) => (
+        <div
+          key={p.id}
+          style={{
+            position: "absolute",
+            left: `${p.left}%`,
+            top: 0,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            background: p.color,
+            borderRadius: p.isCircle ? "50%" : "2px",
+            transform: `rotate(${p.rotate}deg)`,
+            animation: `confettiFall ${p.duration}s ${p.delay}s ease-in forwards`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 const MAP_STYLES: google.maps.MapTypeStyle[] = [
   { elementType: "geometry", stylers: [{ color: "#c8b99a" }] },
@@ -68,6 +111,8 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
   const [success, setSuccess] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [activeTab, setActiveTab] = useState<"enigme" | "carte">("enigme");
+  const [showSkipAnswer, setShowSkipAnswer] = useState(false);
+  const [confettiActive, setConfettiActive] = useState(false);
 
   const staticHints = step.indices ?? [];
   const [hintIndex, setHintIndex] = useState(0);
@@ -168,11 +213,18 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
     };
   }, [activeTab, step]);
 
+  function triggerSuccess() {
+    setConfettiActive(true);
+    setSuccess(true);
+    setTimeout(() => setConfettiActive(false), 3500);
+  }
+
   function handleValidate() {
     if (!answer.trim()) return;
-    if (!step.reponse) { setSuccess(true); return; }
+    if (!step.reponse) { triggerSuccess(); return; }
     if (isCorrect(answer, step.reponse)) {
-      setSuccess(true); setWrong(false);
+      setWrong(false);
+      triggerSuccess();
     } else {
       setWrong(true); setWrongCount((c) => c + 1);
       setTimeout(() => setWrong(false), 1500);
@@ -181,14 +233,28 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
 
   function handleChoice(choice: string) {
     if (isCorrect(choice, step.reponse ?? "")) {
-      setSuccess(true);
+      triggerSuccess();
     } else {
       setWrong(true); setWrongCount((c) => c + 1);
       setTimeout(() => setWrong(false), 1200);
     }
   }
 
-  function handleSkip() { setScore(0); setSuccess(true); }
+  function handleSkip() {
+    // Montrer la réponse avant de passer (sauf si pas de réponse)
+    if (step.reponse) {
+      setShowSkipAnswer(true);
+    } else {
+      setScore(0);
+      triggerSuccess();
+    }
+  }
+
+  function confirmSkip() {
+    setShowSkipAnswer(false);
+    setScore(0);
+    triggerSuccess();
+  }
 
   async function showNextHint() {
     if (hintIndex < staticHints.length) {
@@ -223,6 +289,7 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
   if (success) {
     return (
       <div className="min-h-dvh bg-background flex flex-col items-center justify-center px-6 text-center gap-6">
+        <Confetti active={confettiActive} />
         <div className="w-24 h-24 rounded-full flex items-center justify-center glow-primary" style={{ background: "rgba(140,75,0,0.12)" }}>
           <Icon name="check_circle" filled className="text-primary" size={56} />
         </div>
@@ -488,6 +555,44 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
           <span className="text-[10px] font-bold uppercase tracking-widest">Journal</span>
         </button>
       </nav>
+
+      {/* Modal réponse avant skip */}
+      {showSkipAnswer && (
+        <div className="fixed inset-0 z-50 flex items-end" onClick={() => setShowSkipAnswer(false)}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div
+            className="relative w-full max-w-md mx-auto rounded-t-3xl p-6 space-y-5"
+            style={{ background: "#fff9ed", borderTop: "1px solid rgba(140,122,90,0.2)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full mx-auto" style={{ background: "rgba(140,122,90,0.3)" }} />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(140,75,0,0.1)" }}>
+                <Icon name="lightbulb" className="text-primary" size={20} filled />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Réponse correcte</p>
+                <h3 className="font-headline font-bold text-on-surface text-base">{step.title}</h3>
+              </div>
+            </div>
+            <div className="rounded-2xl px-5 py-4" style={{ background: "rgba(140,75,0,0.07)", border: "1px solid rgba(140,75,0,0.15)" }}>
+              <p className="text-primary font-headline font-bold text-xl text-center tracking-wide">
+                {step.reponse}
+              </p>
+            </div>
+            <p className="text-on-surface-variant text-xs text-center">
+              Tu te souviens pour la prochaine fois ? Cette étape ne rapporte pas de points.
+            </p>
+            <button
+              onClick={confirmSkip}
+              className="w-full py-3.5 rounded-xl cta-gradient font-headline font-bold text-white tap-scale flex items-center justify-center gap-2"
+            >
+              <Icon name="skip_next" size={18} />
+              J&apos;ai compris — passer (0 pt)
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bottom sheet "En savoir plus" */}
       {showMore && (

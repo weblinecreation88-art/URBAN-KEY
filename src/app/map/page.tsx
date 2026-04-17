@@ -43,6 +43,7 @@ function MapContent() {
   const [layersOpen, setLayersOpen] = useState(false);
   const [showPath, setShowPath] = useState(true);
   const [summerMode, setSummerMode] = useState(false);
+  const [satelliteMode, setSatelliteMode] = useState(false);
   const [mapError, setMapError] = useState("");
   const [isOnline, setIsOnline] = useState(true);
 
@@ -200,6 +201,18 @@ function MapContent() {
       strokeOpacity: summerMode ? 0.7 : 0.5,
     });
   }, [summerMode]);
+
+  // Vue satellite / parchement
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    if (satelliteMode) {
+      mapInstanceRef.current.setMapTypeId("hybrid");
+      mapInstanceRef.current.setOptions({ styles: [] });
+    } else {
+      mapInstanceRef.current.setMapTypeId("roadmap");
+      mapInstanceRef.current.setOptions({ styles: MAP_STYLES });
+    }
+  }, [satelliteMode]);
 
   // Mise à jour visibilité polyline
   useEffect(() => {
@@ -425,6 +438,18 @@ function MapContent() {
             </div>
             <label className="toggle-switch scale-75">
               <input type="checkbox" checked={showPath} onChange={() => setShowPath(!showPath)} />
+              <span className="slider" />
+            </label>
+          </div>
+
+          {/* Toggle vue satellite */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Icon name="satellite_alt" size={16} className="text-primary" />
+              <span className="text-on-surface text-xs font-medium">Vue satellite</span>
+            </div>
+            <label className="toggle-switch scale-75">
+              <input type="checkbox" checked={satelliteMode} onChange={() => setSatelliteMode(!satelliteMode)} />
               <span className="slider" />
             </label>
           </div>
