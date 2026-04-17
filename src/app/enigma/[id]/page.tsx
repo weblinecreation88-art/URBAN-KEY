@@ -1,22 +1,26 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { PARCOURS_MEKNES } from "@/data/parcours";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 
-// Normalise une réponse pour comparaison souple
+const MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { elementType: "geometry", stylers: [{ color: "#c8b99a" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#5c3d1e" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#f5ead6" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#e8d5b0" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#d4bc8e" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#a0c4cc" }] },
+  { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+  { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#d8c8a8" }] },
+];
+
 function normalize(s: string) {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
 }
 
-// Distance de Levenshtein — nombre de caractères à changer pour passer de a à b
 function levenshtein(a: string, b: string): number {
   const m = a.length, n = b.length;
   const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
@@ -24,18 +28,14 @@ function levenshtein(a: string, b: string): number {
   );
   for (let i = 1; i <= m; i++)
     for (let j = 1; j <= n; j++)
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
   return dp[m][n];
 }
 
-// Accepte la réponse si égale OU si distance ≤ tolérance selon longueur
 function isCorrect(userAnswer: string, expected: string): boolean {
   const a = normalize(userAnswer);
   const b = normalize(expected);
   if (a === b) return true;
-  // Tolérance : 1 faute si réponse ≤ 6 chars, 2 fautes si > 6 chars
   const tolerance = b.length <= 6 ? 1 : 2;
   return levenshtein(a, b) <= tolerance;
 }
@@ -53,7 +53,7 @@ function useTimer(running: boolean) {
 }
 
 export default function EnigmaPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const { id } = use(params);
   const router = useRouter();
 
   const steps = PARCOURS_MEKNES.steps.filter((s) => !s.isBonus && Number.isInteger(s.order));
@@ -67,27 +67,114 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
   const [score, setScore] = useState(step.scoreBase);
   const [success, setSuccess] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [activeTab, setActiveTab] = useState<"enigme" | "carte">("enigme");
 
-  // Indices multiples
   const staticHints = step.indices ?? [];
-  const [hintIndex, setHintIndex] = useState(0);       // prochain indice à révéler
+  const [hintIndex, setHintIndex] = useState(0);
   const [revealedHints, setRevealedHints] = useState<string[]>([]);
   const [hintLoading, setHintLoading] = useState(false);
 
+  // Mini-carte
+  const miniMapRef = useRef<HTMLDivElement>(null);
+  const miniMapInstanceRef = useRef<google.maps.Map | null>(null);
+  const miniUserMarkerRef = useRef<google.maps.Marker | null>(null);
+  const miniWatchIdRef = useRef<number | null>(null);
+
   const timer = useTimer(!success);
+
+  // Init mini-carte quand l'onglet devient actif
+  useEffect(() => {
+    if (activeTab !== "carte") return;
+    if (miniMapInstanceRef.current) return; // déjà initialisé
+
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "AIzaSyDvm3X_xExGFimV8z7pkAXzYe7tVs8cv6o";
+    setOptions({ key: apiKey, v: "weekly" });
+
+    importLibrary("maps").then(() => {
+      if (!miniMapRef.current) return;
+
+      const map = new google.maps.Map(miniMapRef.current, {
+        center: { lat: step.coords.lat, lng: step.coords.lng },
+        zoom: 18,
+        disableDefaultUI: true,
+        styles: MAP_STYLES,
+        gestureHandling: "greedy",
+      });
+      miniMapInstanceRef.current = map;
+
+      // Marker étape
+      new google.maps.Marker({
+        position: { lat: step.coords.lat, lng: step.coords.lng },
+        map,
+        title: step.title,
+        label: { text: String(Math.floor(step.order)), color: "#fff", fontWeight: "bold", fontSize: "12px" },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 16,
+          fillColor: "#8c4b00",
+          fillOpacity: 1,
+          strokeColor: "#fff9ed",
+          strokeWeight: 3,
+        },
+        zIndex: 10,
+      });
+
+      // Cercle de zone (~20m)
+      new google.maps.Circle({
+        map,
+        center: { lat: step.coords.lat, lng: step.coords.lng },
+        radius: 20,
+        strokeColor: "#8c4b00",
+        strokeOpacity: 0.4,
+        strokeWeight: 1,
+        fillColor: "#8c4b00",
+        fillOpacity: 0.08,
+      });
+
+      // Position utilisateur en temps réel
+      if (navigator.geolocation) {
+        miniWatchIdRef.current = navigator.geolocation.watchPosition(
+          (pos) => {
+            const userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            if (!miniUserMarkerRef.current) {
+              miniUserMarkerRef.current = new google.maps.Marker({
+                position: userPos,
+                map,
+                title: "Vous êtes ici",
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 10,
+                  fillColor: "#296767",
+                  fillOpacity: 1,
+                  strokeColor: "#fff9ed",
+                  strokeWeight: 3,
+                },
+                zIndex: 999,
+              });
+            } else {
+              miniUserMarkerRef.current.setPosition(userPos);
+            }
+          },
+          undefined,
+          { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+        );
+      }
+    }).catch(console.error);
+
+    return () => {
+      if (miniWatchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(miniWatchIdRef.current);
+      }
+    };
+  }, [activeTab, step]);
 
   function handleValidate() {
     if (!answer.trim()) return;
-    if (!step.reponse) {
-      setSuccess(true);
-      return;
-    }
+    if (!step.reponse) { setSuccess(true); return; }
     if (isCorrect(answer, step.reponse)) {
-      setSuccess(true);
-      setWrong(false);
+      setSuccess(true); setWrong(false);
     } else {
-      setWrong(true);
-      setWrongCount((c) => c + 1);
+      setWrong(true); setWrongCount((c) => c + 1);
       setTimeout(() => setWrong(false), 1500);
     }
   }
@@ -96,25 +183,19 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
     if (isCorrect(choice, step.reponse ?? "")) {
       setSuccess(true);
     } else {
-      setWrong(true);
-      setWrongCount((c) => c + 1);
+      setWrong(true); setWrongCount((c) => c + 1);
       setTimeout(() => setWrong(false), 1200);
     }
   }
 
-  function handleSkip() {
-    setScore(0);
-    setSuccess(true);
-  }
+  function handleSkip() { setScore(0); setSuccess(true); }
 
   async function showNextHint() {
     if (hintIndex < staticHints.length) {
-      // Indice statique
       setScore((s) => Math.max(0, s - 30));
       setRevealedHints((prev) => [...prev, staticHints[hintIndex]]);
       setHintIndex((i) => i + 1);
     } else {
-      // Appel IA Genkit
       setHintLoading(true);
       setScore((s) => Math.max(0, s - 50));
       try {
@@ -163,16 +244,14 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
         {nextStep ? (
-          <button
-            onClick={() => router.push(`/enigma/${nextStep.id}`)}
+          <button onClick={() => router.push(`/enigma/${nextStep.id}`)}
             className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-white tap-scale flex items-center justify-center gap-2"
           >
             Étape suivante : {nextStep.title}
             <Icon name="arrow_forward" size={18} />
           </button>
         ) : (
-          <button
-            onClick={() => router.push("/end")}
+          <button onClick={() => router.push("/end")}
             className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-white tap-scale flex items-center justify-center gap-2"
           >
             <Icon name="emoji_events" size={18} />
@@ -187,9 +266,9 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
   }
 
   return (
-    <div className="min-h-dvh bg-background text-on-background pb-24">
+    <div className="h-dvh bg-background text-on-background flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-5 py-4"
+      <header className="shrink-0 flex items-center justify-between px-5 py-4 z-50"
         style={{ background: "rgba(255,249,237,0.95)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(140,122,90,0.12)" }}
       >
         <div className="flex items-center gap-3">
@@ -201,207 +280,199 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
             <h1 className="font-headline font-bold text-primary text-base leading-tight">{step.title}</h1>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-high" style={{ border: "1px solid rgba(140,122,90,0.2)" }}>
-            <Icon name="timer" className="text-primary" size={14} />
-            <span className="text-primary font-bold text-sm font-label">{timer}</span>
-          </div>
+        <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-high" style={{ border: "1px solid rgba(140,122,90,0.2)" }}>
+          <Icon name="timer" className="text-primary" size={14} />
+          <span className="text-primary font-bold text-sm font-label">{timer}</span>
         </div>
       </header>
 
       {/* Progress bar */}
-      <div className="h-1 w-full bg-surface-container-high">
+      <div className="shrink-0 h-1 w-full bg-surface-container-high">
         <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
       </div>
 
-      <main className="px-5 py-5 space-y-5">
-        {/* Hero image */}
-        <section className="relative rounded-2xl overflow-hidden shadow-md" style={{ border: "1px solid rgba(140,122,90,0.2)" }}>
-          <div className="aspect-[16/9]">
-            <img
-              src="/images/enigma-mosaique.png"
-              alt={step.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)" }} />
-          </div>
-          <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
-            <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full bg-amber-800/70 uppercase tracking-wider">
-              Énigme active
-            </span>
-            <span className="text-white/80 text-xs font-medium px-2 py-1 rounded-full bg-black/40">
-              <Icon name="location_on" size={12} className="inline mr-0.5" />{step.lieu}
-            </span>
-          </div>
-        </section>
-
-        {/* Énigme */}
-        <section className="parchment-card rounded-2xl p-5 relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 opacity-5">
-            <Icon name="auto_stories" filled size={100} />
-          </div>
-          <p className="text-[10px] uppercase font-bold tracking-widest text-secondary mb-3">Énigme</p>
-          <p className="text-on-surface leading-relaxed text-sm font-medium">
-            {step.enigme}
-          </p>
-          {step.qrCodePosition && (
-            <p className="text-on-surface-variant text-[10px] mt-3 italic">
-              <Icon name="qr_code" size={11} className="inline mr-1" />
-              QR Code : {step.qrCodePosition}
-            </p>
-          )}
-          {/* Bouton "En savoir plus" */}
-          {(step.descriptionLongue || step.videoUrl) && (
-            <button
-              onClick={() => setShowMore(true)}
-              className="mt-3 flex items-center gap-1.5 text-secondary text-xs font-bold tap-scale"
-            >
-              <Icon name="info" size={14} />
-              En savoir plus sur ce lieu
-            </button>
-          )}
-        </section>
-
-        {/* Réponse : QCM ou input texte */}
-        <section className="parchment-card rounded-2xl p-5">
-          <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant mb-3">Votre réponse</p>
-
-          {step.choices ? (
-            /* Mode QCM */
-            <div className="space-y-2">
-              {step.choices.map((choice) => (
-                <button
-                  key={choice}
-                  onClick={() => handleChoice(choice)}
-                  className={`w-full text-left px-4 py-3 rounded-xl font-medium text-sm tap-scale transition-all ${
-                    wrong ? "ring-1 ring-red-400" : ""
-                  }`}
-                  style={{
-                    background: "rgba(140,75,0,0.06)",
-                    border: "1px solid rgba(140,122,90,0.25)",
-                    color: "#2c1a00",
-                  }}
-                >
-                  {choice}
-                </button>
-              ))}
-              {wrong && (
-                <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
-                  <Icon name="cancel" size={13} />
-                  Ce n&apos;est pas la bonne réponse. Essaie encore !
-                </p>
-              )}
-            </div>
-          ) : (
-            /* Mode texte libre */
-            <>
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={answer}
-                  onChange={(e) => { setAnswer(e.target.value); setWrong(false); }}
-                  onKeyDown={(e) => e.key === "Enter" && handleValidate()}
-                  placeholder="Entrez votre réponse…"
-                  className={`flex-1 rounded-xl px-4 py-3 text-on-surface font-medium text-sm outline-none transition-all placeholder:text-on-surface-variant/50 ${
-                    wrong
-                      ? "ring-2 ring-red-500 bg-red-50"
-                      : "bg-surface-container-low focus:ring-2 focus:ring-primary/40"
-                  }`}
-                />
-                <button
-                  onClick={handleValidate}
-                  className="px-5 py-3 rounded-xl cta-gradient font-headline font-bold text-white text-sm tap-scale shrink-0"
-                >
-                  Valider
-                </button>
-              </div>
-              {wrong && (
-                <p className="text-red-600 text-xs mt-2 flex items-center gap-1">
-                  <Icon name="cancel" size={13} />
-                  Ce n&apos;est pas la bonne réponse. Cherche encore !
-                </p>
-              )}
-            </>
-          )}
-
-          {/* Bouton Skip — après 2 mauvaises réponses OU tous les indices épuisés */}
-          {(wrongCount >= 2 || revealedHints.length >= staticHints.length + 1) && (
-            <button
-              onClick={handleSkip}
-              className="mt-4 w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold tap-scale"
-              style={{ background: "rgba(140,75,0,0.08)", color: "#8c4b00", border: "1px solid rgba(140,75,0,0.2)" }}
-            >
-              <Icon name="skip_next" size={15} />
-              Passer cette étape (0 point)
-            </button>
-          )}
-        </section>
-
-        {/* Indices multiples */}
-        <section className="parchment-card rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Icon name="lightbulb" className="text-primary" size={18} />
-            <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Indices</p>
-          </div>
-
-          {/* Indices déjà révélés */}
-          {revealedHints.map((hint, i) => (
-            <div key={i} className="mb-3">
-              <p className="text-[10px] text-on-surface-variant/60 mb-1">Indice {i + 1}</p>
-              <p className="text-primary italic text-sm leading-relaxed">&ldquo;{hint}&rdquo;</p>
-            </div>
-          ))}
-
-          {hintLoading && (
-            <div className="flex items-center gap-2 text-primary text-sm mb-3">
-              <Icon name="progress_activity" size={16} className="animate-spin" />
-              <span>Gemini génère un indice…</span>
-            </div>
-          )}
-
-          {/* Bouton prochain indice */}
-          {!hintLoading && (
-            <button
-              onClick={showNextHint}
-              className="w-full flex items-center justify-between tap-scale py-1"
-            >
-              <span className="text-primary font-bold text-xs uppercase tracking-widest">
-                {revealedHints.length === 0
-                  ? "Révéler un indice"
-                  : hintIndex < staticHints.length
-                    ? `Indice ${revealedHints.length + 1}`
-                    : "Aide IA"}
-              </span>
-              <span className="text-on-surface-variant text-[10px] bg-surface-container px-2 py-0.5 rounded-full">
-                {hintIndex < staticHints.length ? "-30 pts" : "-50 pts"}
-              </span>
-            </button>
-          )}
-
-          {revealedHints.length > 0 && (
-            <p className="text-on-surface-variant/60 text-[10px] mt-2">Score actuel : {score} pts</p>
-          )}
-          {revealedHints.length > 0 && (
-            <p className="text-on-surface-variant/50 text-[10px] mt-1 italic">
-              Toujours bloqué ? Le bouton <strong>Passer</strong> apparaît sous la zone de réponse.
-            </p>
-          )}
-        </section>
-
-        {/* Mini carte — lien vers /map avec step courant */}
-        <button onClick={() => router.push(mapUrl)} className="w-full rounded-xl overflow-hidden relative tap-scale"
-          style={{ border: "1px solid rgba(140,122,90,0.2)" }}
+      {/* Tab toggle Énigme | Carte */}
+      <div className="shrink-0 flex" style={{ borderBottom: "1px solid rgba(140,122,90,0.15)" }}>
+        <button
+          onClick={() => setActiveTab("enigme")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold uppercase tracking-widest transition-all ${
+            activeTab === "enigme" ? "text-primary border-b-2 border-primary" : "text-on-surface-variant/60"
+          }`}
+          style={{ background: activeTab === "enigme" ? "rgba(140,75,0,0.05)" : "transparent" }}
         >
-          <img src="/images/bab-mansour.jpg" alt="Carte" className="w-full h-24 object-cover opacity-70" />
-          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/20">
-            <Icon name="map" className="text-white" size={18} />
-            <span className="text-white font-bold text-sm">Voir sur la carte</span>
-          </div>
+          <Icon name="extension" size={14} filled={activeTab === "enigme"} />
+          Énigme
         </button>
-      </main>
+        <button
+          onClick={() => setActiveTab("carte")}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold uppercase tracking-widest transition-all ${
+            activeTab === "carte" ? "text-primary border-b-2 border-primary" : "text-on-surface-variant/60"
+          }`}
+          style={{ background: activeTab === "carte" ? "rgba(140,75,0,0.05)" : "transparent" }}
+        >
+          <Icon name="map" size={14} filled={activeTab === "carte"} />
+          Carte
+        </button>
+      </div>
 
-      {/* Bottom nav énigme */}
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 flex justify-around items-center px-4 py-3 rounded-t-2xl"
+      {/* Onglet Carte — plein écran sous les tabs */}
+      {activeTab === "carte" && (
+        <div className="flex-1 relative">
+          <div ref={miniMapRef} className="absolute inset-0 w-full h-full" />
+          {/* Badge lieu */}
+          <div className="absolute bottom-24 left-4 right-4 z-10 pointer-events-none">
+            <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full"
+              style={{ background: "rgba(255,249,237,0.95)", backdropFilter: "blur(12px)", border: "1px solid rgba(140,122,90,0.25)" }}
+            >
+              <div className="w-3 h-3 rounded-full bg-primary/80 animate-pulse" />
+              <span className="text-primary text-xs font-bold">{step.lieu}</span>
+              <span className="text-on-surface-variant/60 text-[10px]">· Zone : ~20m</span>
+            </div>
+          </div>
+          {/* Bouton recentrer */}
+          <button
+            onClick={() => miniMapInstanceRef.current?.panTo({ lat: step.coords.lat, lng: step.coords.lng })}
+            className="absolute bottom-24 right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center tap-scale"
+            style={{ background: "rgba(255,249,237,0.95)", border: "1px solid rgba(140,122,90,0.3)", boxShadow: "0 2px 12px rgba(44,26,0,0.15)" }}
+          >
+            <Icon name="my_location" className="text-primary" size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Onglet Énigme — scrollable */}
+      {activeTab === "enigme" && (
+        <div className="flex-1 overflow-y-auto pb-24">
+          <div className="px-5 py-5 space-y-5">
+            {/* Hero image */}
+            <section className="relative rounded-2xl overflow-hidden shadow-md" style={{ border: "1px solid rgba(140,122,90,0.2)" }}>
+              <div className="aspect-[16/9]">
+                <img src="/images/enigma-mosaique.png" alt={step.title} className="w-full h-full object-cover" />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)" }} />
+              </div>
+              <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+                <span className="text-white text-xs font-bold px-2.5 py-1 rounded-full bg-amber-800/70 uppercase tracking-wider">Énigme active</span>
+                <span className="text-white/80 text-xs font-medium px-2 py-1 rounded-full bg-black/40">
+                  <Icon name="location_on" size={12} className="inline mr-0.5" />{step.lieu}
+                </span>
+              </div>
+            </section>
+
+            {/* Énigme */}
+            <section className="parchment-card rounded-2xl p-5 relative overflow-hidden">
+              <div className="absolute -right-4 -top-4 opacity-5">
+                <Icon name="auto_stories" filled size={100} />
+              </div>
+              <p className="text-[10px] uppercase font-bold tracking-widest text-secondary mb-3">Énigme</p>
+              <p className="text-on-surface leading-relaxed text-sm font-medium">{step.enigme}</p>
+              {step.qrCodePosition && (
+                <p className="text-on-surface-variant text-[10px] mt-3 italic">
+                  <Icon name="qr_code" size={11} className="inline mr-1" />
+                  QR Code : {step.qrCodePosition}
+                </p>
+              )}
+              {(step.descriptionLongue || step.videoUrl) && (
+                <button onClick={() => setShowMore(true)} className="mt-3 flex items-center gap-1.5 text-secondary text-xs font-bold tap-scale">
+                  <Icon name="info" size={14} />
+                  En savoir plus sur ce lieu
+                </button>
+              )}
+            </section>
+
+            {/* Réponse */}
+            <section className="parchment-card rounded-2xl p-5">
+              <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant mb-3">Votre réponse</p>
+              {step.choices ? (
+                <div className="space-y-2">
+                  {step.choices.map((choice) => (
+                    <button key={choice} onClick={() => handleChoice(choice)}
+                      className={`w-full text-left px-4 py-3 rounded-xl font-medium text-sm tap-scale transition-all ${wrong ? "ring-1 ring-red-400" : ""}`}
+                      style={{ background: "rgba(140,75,0,0.06)", border: "1px solid rgba(140,122,90,0.25)", color: "#2c1a00" }}
+                    >
+                      {choice}
+                    </button>
+                  ))}
+                  {wrong && (
+                    <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                      <Icon name="cancel" size={13} /> Ce n&apos;est pas la bonne réponse. Essaie encore !
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-3">
+                    <input type="text" value={answer}
+                      onChange={(e) => { setAnswer(e.target.value); setWrong(false); }}
+                      onKeyDown={(e) => e.key === "Enter" && handleValidate()}
+                      placeholder="Entrez votre réponse…"
+                      className={`flex-1 rounded-xl px-4 py-3 text-on-surface font-medium text-sm outline-none transition-all placeholder:text-on-surface-variant/50 ${wrong ? "ring-2 ring-red-500 bg-red-50" : "bg-surface-container-low focus:ring-2 focus:ring-primary/40"}`}
+                    />
+                    <button onClick={handleValidate}
+                      className="px-5 py-3 rounded-xl cta-gradient font-headline font-bold text-white text-sm tap-scale shrink-0"
+                    >
+                      Valider
+                    </button>
+                  </div>
+                  {wrong && (
+                    <p className="text-red-600 text-xs mt-2 flex items-center gap-1">
+                      <Icon name="cancel" size={13} /> Ce n&apos;est pas la bonne réponse. Cherche encore !
+                    </p>
+                  )}
+                </>
+              )}
+              {(wrongCount >= 2 || revealedHints.length >= staticHints.length + 1) && (
+                <button onClick={handleSkip}
+                  className="mt-4 w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold tap-scale"
+                  style={{ background: "rgba(140,75,0,0.08)", color: "#8c4b00", border: "1px solid rgba(140,75,0,0.2)" }}
+                >
+                  <Icon name="skip_next" size={15} /> Passer cette étape (0 point)
+                </button>
+              )}
+            </section>
+
+            {/* Indices */}
+            <section className="parchment-card rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Icon name="lightbulb" className="text-primary" size={18} />
+                <p className="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Indices</p>
+              </div>
+              {revealedHints.map((hint, i) => (
+                <div key={i} className="mb-3">
+                  <p className="text-[10px] text-on-surface-variant/60 mb-1">Indice {i + 1}</p>
+                  <p className="text-primary italic text-sm leading-relaxed">&ldquo;{hint}&rdquo;</p>
+                </div>
+              ))}
+              {hintLoading && (
+                <div className="flex items-center gap-2 text-primary text-sm mb-3">
+                  <Icon name="progress_activity" size={16} className="animate-spin" />
+                  <span>Gemini génère un indice…</span>
+                </div>
+              )}
+              {!hintLoading && (
+                <button onClick={showNextHint} className="w-full flex items-center justify-between tap-scale py-1">
+                  <span className="text-primary font-bold text-xs uppercase tracking-widest">
+                    {revealedHints.length === 0 ? "Révéler un indice" : hintIndex < staticHints.length ? `Indice ${revealedHints.length + 1}` : "Aide IA"}
+                  </span>
+                  <span className="text-on-surface-variant text-[10px] bg-surface-container px-2 py-0.5 rounded-full">
+                    {hintIndex < staticHints.length ? "-30 pts" : "-50 pts"}
+                  </span>
+                </button>
+              )}
+              {revealedHints.length > 0 && (
+                <p className="text-on-surface-variant/60 text-[10px] mt-2">Score actuel : {score} pts</p>
+              )}
+              {revealedHints.length > 0 && (
+                <p className="text-on-surface-variant/50 text-[10px] mt-1 italic">
+                  Toujours bloqué ? Le bouton <strong>Passer</strong> apparaît sous la zone de réponse.
+                </p>
+              )}
+            </section>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom nav */}
+      <nav className="shrink-0 flex justify-around items-center px-4 py-3 rounded-t-2xl"
         style={{ background: "rgba(255,249,237,0.97)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(140,122,90,0.2)" }}
       >
         <button onClick={() => router.push(mapUrl)} className="flex flex-col items-center text-on-surface-variant/60 tap-scale gap-0.5">
@@ -422,8 +493,7 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
       {showMore && (
         <div className="fixed inset-0 z-50 flex items-end" onClick={() => setShowMore(false)}>
           <div className="absolute inset-0 bg-black/40" />
-          <div
-            className="relative w-full max-w-md mx-auto rounded-t-3xl p-6 space-y-4 max-h-[80dvh] overflow-y-auto"
+          <div className="relative w-full max-w-md mx-auto rounded-t-3xl p-6 space-y-4 max-h-[80dvh] overflow-y-auto"
             style={{ background: "#fff9ed", borderTop: "1px solid rgba(140,122,90,0.2)" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -434,16 +504,13 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
             )}
             {step.videoUrl && (
               <div className="rounded-xl overflow-hidden aspect-video">
-                <iframe
-                  src={step.videoUrl}
-                  className="w-full h-full"
+                <iframe src={step.videoUrl} className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
               </div>
             )}
-            <button
-              onClick={() => setShowMore(false)}
+            <button onClick={() => setShowMore(false)}
               className="w-full py-3 rounded-xl cta-gradient font-headline font-bold text-white tap-scale"
             >
               Fermer
