@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Icon from "@/components/Icon";
@@ -18,8 +18,14 @@ const REVIEWS = [
 export default function QuestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   use(params); // id used in future multi-quest lookup
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, hasPurchased } = useAuth();
   const [activeTab, setActiveTab] = useState<"desc" | "steps" | "avis">("desc");
+  const [purchased, setPurchased] = useState(false);
+
+  useEffect(() => {
+    if (user) hasPurchased(PARCOURS_MEKNES.id).then(setPurchased);
+    else setPurchased(false);
+  }, [user, hasPurchased]);
 
   // Use real data if ID matches, otherwise show Meknès by default
   const quest = PARCOURS_MEKNES;
@@ -236,14 +242,30 @@ export default function QuestDetailPage({ params }: { params: Promise<{ id: stri
       {/* Sticky CTA */}
       <div className="fixed bottom-0 left-0 right-0 px-5 py-4 max-w-lg mx-auto"
         style={{ background: "rgba(255,249,237,0.97)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(140,122,90,0.2)" }}>
-        <button
-          onClick={() => router.push(user ? `/checkout?quest=${quest.id}` : "/login")}
-          className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-white tap-scale flex items-center justify-center gap-2">
-          <Icon name="shopping_cart" size={18} />
-          {user ? `Acheter — ${quest.price} ${quest.currency}` : "Connexion pour acheter"}
-        </button>
+        {!user ? (
+          <button
+            onClick={() => router.push("/login")}
+            className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-white tap-scale flex items-center justify-center gap-2">
+            <Icon name="login" size={18} />
+            Se connecter pour jouer
+          </button>
+        ) : purchased ? (
+          <button
+            onClick={() => router.push(`/enigma/${PARCOURS_MEKNES.steps.find(s => !s.isBonus)?.id ?? "bab-mansour"}`)}
+            className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-white tap-scale flex items-center justify-center gap-2">
+            <Icon name="explore" size={18} />
+            Démarrer le parcours
+          </button>
+        ) : (
+          <button
+            onClick={() => router.push(`/checkout?quest=${quest.id}`)}
+            className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-white tap-scale flex items-center justify-center gap-2">
+            <Icon name="shopping_cart" size={18} />
+            Acheter — {quest.price} {quest.currency}
+          </button>
+        )}
         <p className="text-center text-on-surface-variant text-[10px] mt-2">
-          Achat unique · Valide 30 jours · Satisfait ou remboursé
+          {purchased ? "Parcours débloqué · Bonne aventure !" : "Achat unique · Valide 30 jours · Satisfait ou remboursé"}
         </p>
       </div>
     </div>

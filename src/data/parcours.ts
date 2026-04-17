@@ -39,11 +39,11 @@ export interface Quest {
 
 export const PARCOURS_MEKNES: Quest = {
   id: "meknes-imperial",
-  title: "Secrets de la Cité Impériale",
-  subtitle: "Meknès · 8 étapes + bonus",
+  title: "Sur les traces de Thomas Pellow",
+  subtitle: "Meknès · Parcours démo",
   city: "Meknès",
-  duration: "2h30",
-  difficulty: "Moyen",
+  duration: "30 min",
+  difficulty: "Facile",
   price: 100,
   currency: "MAD",
   steps: [

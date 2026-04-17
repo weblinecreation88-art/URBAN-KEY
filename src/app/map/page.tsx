@@ -9,6 +9,7 @@ import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { useGeofencing, haversine, type GeoZone } from "@/hooks/useGeofencing";
 import { PARCOURS_MEKNES } from "@/data/parcours";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
+import { useAuth } from "@/context/AuthContext";
 
 const MEKNES_CENTER = { lat: 33.8920, lng: -5.5540 };
 
@@ -62,6 +63,11 @@ function getMarkerStyle(status: "completed" | "active" | "next" | "locked", orde
 function MapContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && !user) router.replace("/login");
+  }, [user, authLoading, router]);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const userMarkerRef = useRef<google.maps.Marker | null>(null);

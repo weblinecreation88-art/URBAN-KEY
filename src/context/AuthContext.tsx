@@ -21,6 +21,7 @@ interface AuthContextType {
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  hasPurchased: (questId: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -85,8 +86,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   }
 
+  async function hasPurchased(questId: string): Promise<boolean> {
+    if (!auth.currentUser) return false;
+    try {
+      const snap = await getDoc(doc(db, "users", auth.currentUser.uid, "purchases", questId));
+      return snap.exists();
+    } catch {
+      return false;
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, loginWithGoogle, logout, hasPurchased }}>
       {children}
     </AuthContext.Provider>
   );

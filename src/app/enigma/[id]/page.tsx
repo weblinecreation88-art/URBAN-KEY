@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { PARCOURS_MEKNES } from "@/data/parcours";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
+import { useAuth } from "@/context/AuthContext";
 
 // Confettis — valeurs déterministes pour éviter toute erreur SSR
 const CONFETTI_PIECES = Array.from({ length: 70 }, (_, i) => ({
@@ -98,11 +99,23 @@ function useTimer(running: boolean) {
 export default function EnigmaPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { user, loading: authLoading, hasPurchased } = useAuth();
 
   const steps = PARCOURS_MEKNES.steps.filter((s) => !s.isBonus && Number.isInteger(s.order));
   const stepIndex = steps.findIndex((s) => s.id === id || s.order === Number(id));
   const step = steps[stepIndex] ?? steps[0];
   const totalSteps = steps.length;
+
+  const [accessChecked, setAccessChecked] = useState(false);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { router.replace("/login"); return; }
+    hasPurchased(PARCOURS_MEKNES.id).then((ok) => {
+      if (!ok) router.replace(`/quest/${PARCOURS_MEKNES.id}`);
+      else setAccessChecked(true);
+    });
+  }, [user, authLoading, hasPurchased, router]);
 
   const [answer, setAnswer] = useState("");
   const [wrong, setWrong] = useState(false);
@@ -328,6 +341,14 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
         <button onClick={() => router.push(mapUrl)} className="text-primary text-sm font-medium tap-scale">
           Retour à la carte
         </button>
+      </div>
+    );
+  }
+
+  if (!accessChecked) {
+    return (
+      <div className="h-dvh bg-background flex items-center justify-center">
+        <Icon name="progress_activity" className="text-primary animate-spin" size={32} />
       </div>
     );
   }
