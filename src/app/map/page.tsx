@@ -44,9 +44,7 @@ function MapContent() {
   const [showPath, setShowPath] = useState(true);
   const [summerMode, setSummerMode] = useState(false);
   const [mapError, setMapError] = useState("");
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
+  const [isOnline, setIsOnline] = useState(true);
 
   const mainStepsAll = PARCOURS_MEKNES.steps.filter(s => !s.isBonus && Number.isInteger(s.order));
   const stepFromParam = searchParams.get("step");
@@ -80,8 +78,9 @@ function MapContent() {
     } catch { /* quota exceeded */ }
   }, []);
 
-  // Écoute online/offline
+  // Sync statut online après mount (évite hydration mismatch SSR/client)
   useEffect(() => {
+    setIsOnline(navigator.onLine);
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener("online", handleOnline);
