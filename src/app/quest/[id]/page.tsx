@@ -251,10 +251,14 @@ export default function QuestDetailPage({ params }: { params: Promise<{ id: stri
           </button>
         ) : purchased ? (
           <button
-            onClick={() => router.push(`/enigma/${PARCOURS_MEKNES.steps.find(s => !s.isBonus)?.id ?? "bab-mansour"}`)}
+            onClick={() => {
+              const saved = (() => { try { return JSON.parse(localStorage.getItem(`urbankey_active_step_${PARCOURS_MEKNES.id}`) ?? "null"); } catch { return null; } })();
+              const firstStep = PARCOURS_MEKNES.steps.find(s => !s.isBonus && Number.isInteger(s.order))?.id ?? "bab-mansour";
+              router.push(`/enigma/${saved ?? firstStep}`);
+            }}
             className="w-full py-4 rounded-xl cta-gradient font-headline font-bold text-white tap-scale flex items-center justify-center gap-2">
             <Icon name="explore" size={18} />
-            Démarrer le parcours
+            Reprendre le parcours
           </button>
         ) : (
           <button

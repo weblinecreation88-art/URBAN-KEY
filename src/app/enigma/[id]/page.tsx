@@ -117,20 +117,36 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
     });
   }, [user, authLoading, hasPurchased, router]);
 
+  const SAVE_KEY = `urbankey_progress_${PARCOURS_MEKNES.id}_${step.id}`;
+
+  function loadSaved() {
+    try { return JSON.parse(localStorage.getItem(SAVE_KEY) ?? "{}"); } catch { return {}; }
+  }
+
+  const saved = useMemo(() => loadSaved(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [answer, setAnswer] = useState("");
   const [wrong, setWrong] = useState(false);
-  const [wrongCount, setWrongCount] = useState(0);
-  const [score, setScore] = useState(step.scoreBase);
-  const [success, setSuccess] = useState(false);
+  const [wrongCount, setWrongCount] = useState<number>(saved.wrongCount ?? 0);
+  const [score, setScore] = useState<number>(saved.score ?? step.scoreBase);
+  const [success, setSuccess] = useState<boolean>(saved.success ?? false);
   const [showMore, setShowMore] = useState(false);
   const [activeTab, setActiveTab] = useState<"enigme" | "carte">("enigme");
   const [showSkipAnswer, setShowSkipAnswer] = useState(false);
   const [confettiActive, setConfettiActive] = useState(false);
 
   const staticHints = step.indices ?? [];
-  const [hintIndex, setHintIndex] = useState(0);
-  const [revealedHints, setRevealedHints] = useState<string[]>([]);
+  const [hintIndex, setHintIndex] = useState<number>(saved.hintIndex ?? 0);
+  const [revealedHints, setRevealedHints] = useState<string[]>(saved.revealedHints ?? []);
   const [hintLoading, setHintLoading] = useState(false);
+
+  // Sauvegarde étape active + état énigme
+  useEffect(() => {
+    try {
+      localStorage.setItem(`urbankey_active_step_${PARCOURS_MEKNES.id}`, JSON.stringify(step.id));
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ score, wrongCount, hintIndex, revealedHints, success }));
+    } catch { /* quota */ }
+  }, [score, wrongCount, hintIndex, revealedHints, success, SAVE_KEY, step.id]);
 
   // Mini-carte
   const miniMapRef = useRef<HTMLDivElement>(null);
@@ -370,9 +386,14 @@ export default function EnigmaPage({ params }: { params: Promise<{ id: string }>
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-high" style={{ border: "1px solid rgba(140,122,90,0.2)" }}>
-          <Icon name="timer" className="text-primary" size={14} />
-          <span className="text-primary font-bold text-sm font-label">{timer}</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-high" style={{ border: "1px solid rgba(140,122,90,0.2)" }}>
+            <Icon name="timer" className="text-primary" size={14} />
+            <span className="text-primary font-bold text-sm font-label">{timer}</span>
+          </div>
+          <button onClick={() => router.push("/discover")} className="tap-scale w-8 h-8 flex items-center justify-center rounded-full bg-surface-container-high" style={{ border: "1px solid rgba(140,122,90,0.2)" }}>
+            <Icon name="home" className="text-primary" size={18} />
+          </button>
         </div>
       </header>
 
